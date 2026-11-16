@@ -219,6 +219,8 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
+# node_modules
+node_modules/
 # data
 data/departments
 data/notas-alunos-2012-2022-corrigido.csv
