@@ -3,69 +3,57 @@
         <h2>DEGREE MANAGEMENT</h2>
         <h1>Curricular Bottlenecks</h1>
         <div class="search-container">
-            
+
             <div class="op-container">
-                <label for="search-course">Department</label>
-                <select id="search-course" name="search-course">
-                    <option value="" disabled selected>Select a course...</option>
-                    <option value="math">Mathematics</option>
-                    <option value="programming">Programming</option>
-                    <option value="statistics">Statistics</option>
-                </select>
+                <label for="filter-department">Department</label>
+                <select id="filter-department"></select>
             </div>
 
             <div class="op-container">
-                <label for="search-year">Degree</label>
-                <select id="search-year" name="search-year">
-                    <option value="" disabled selected>Select an academic year...</option>
-                    <option value="2025-2026">2025/2026</option>
-                    <option value="2024-2025">2024/2025</option>
-                    <option value="2023-2024">2023/2024</option>
-                </select>
+                <label for="filter-degree">Degree / Course</label>
+                <select id="filter-degree"></select>
             </div>
 
             <div class="op-container">
-                <label for="search-year">Curricular Year</label>
-                <select id="search-year" name="search-year">
-                    <option value="" disabled selected>Select an academic year...</option>
-                    <option value="2025-2026">2025/2026</option>
-                    <option value="2024-2025">2024/2025</option>
-                    <option value="2023-2024">2023/2024</option>
-                </select>
+                <label for="filter-cycle" title="The dataset has no curricular-year column, so students are grouped by study cycle instead.">Curricular Year (by cycle)</label>
+                <select id="filter-cycle"></select>
             </div>
 
             <div class="op-container">
-                <label>Academic Year</label>
-
-                <div class="multi-select">
-                    <button type="button" class="dropdown-btn">
-                        <span>Select academic years...</span>
-                        <i class="fi fi-br-angle-small-down"></i>
-                    </button>
-
-                    <div class="dropdown-options">
-                        <label>
-                            <input type="checkbox" value="2022/2023">
-                            2022/2023
-                        </label>
-                        <label>
-                            <input type="checkbox" value="2023/2024">
-                            2023/2024
-                        </label>
-                        <label>
-                            <input type="checkbox" value="2024/2025">
-                            2024/2025
-                        </label>
-                    </div>
+                <label for="filter-year-from">Academic Years Range</label>
+                <div class="range-inputs">
+                    <select id="filter-year-from" aria-label="From academic year"></select>
+                    <span class="range-separator">-</span>
+                    <select id="filter-year-to" aria-label="To academic year"></select>
                 </div>
             </div>
 
+            <button type="button" id="btn-reset" class="btn-reset"><i class="fi fi-br-rotate-right"></i>Reset view</button>
         </div>
     </div>
+
     <div class="charts-layout">
+        <article class="chart-container chart-card">
+            <header class="card-header">
+                <h3>Course Failure Rate vs. Student Volume</h3>
+                <span id="course-count-badge" class="badge">- COURSE UNITS</span>
+            </header>
+            <div id="scatter-chart" class="chart-body">
+                <p id="scatter-status" class="chart-status">Loading…</p>
+            </div>
+            <footer id="scatter-footer" class="card-footer"></footer>
+        </article>
 
-        <div class="chart-container"></div>
-        <div class="chart-container"></div>
-
+        <article class="chart-container chart-card">
+            <header class="card-header">
+                <h3 id="line-title">Longitudinal Pass Rate</h3>
+            </header>
+            <div class="kpi">
+                <span id="kpi-value" class="kpi-value">-</span>
+                <span id="kpi-label" class="kpi-label"></span>
+            </div>
+            <div id="line-chart" class="chart-body"></div>
+            <div id="trend-callout" class="callout">Select a course bubble to compare its historical trend against the degree average.</div>
+        </article>
     </div>
 </section>

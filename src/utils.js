@@ -1,9 +1,17 @@
+import { initDegreeManagement } from "./js/pages/degreeManagement.js";
+
 let showSideBar = false;
+let cleanupPage = null;
 
 const buttonSidebar = document.getElementById("btn-sidebar");
 const sidebar = document.getElementById("sidebar");
 
 const pageButtons = document.querySelectorAll(".btn-sidebar");
+
+function closeSidebar() {
+    showSideBar = false;
+    sidebar.classList.remove("active");
+}
 
 buttonSidebar.addEventListener("click", () => {
     showSideBar = !showSideBar;
@@ -20,7 +28,16 @@ async function loadPage(page) {
 
     const html = await response.text();
 
+    if (cleanupPage) {
+        cleanupPage();
+        cleanupPage = null;
+    }
+
     document.getElementById("page-content").innerHTML = html;
+
+    if (page === "degree_management") {
+        cleanupPage = initDegreeManagement();
+    }
 
     pageButtons.forEach(button => {
         button.classList.toggle(
@@ -36,24 +53,18 @@ pageButtons.forEach(button => {
     button.addEventListener("click", () => {
         loadPage(button.dataset.page);
 
-        // Fecha a sidebar ao clicar numa opção
-        showSideBar = false;
-        sidebar.classList.remove("active");
+        closeSidebar();
     });
 });
-
-
-
-
-pageButtons.forEach(button => {
-    button.addEventListener("click", () => {
-        loadPage(button.dataset.page);
-    });
-});
-
-
 
 const pageContent = document.getElementById("page-content");
+
+// clicking outside the sidebar closes it
+document.addEventListener("click", (e) => {
+    if (showSideBar && !e.target.closest("#sidebar, #btn-sidebar")) {
+        closeSidebar();
+    }
+});
 
 document.addEventListener("click", (e) => {
     const dropdownBtn = e.target.closest(".dropdown-btn");
