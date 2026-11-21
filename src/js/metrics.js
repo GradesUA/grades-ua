@@ -1,5 +1,7 @@
 const RESIT = "Recurso";
 const IMPROVEMENT = "Melhoria";
+const NORMAL = "Normal";
+const SPECIAL = "Especial";
 
 function createTally() {
     return { enrolled: 0, passed: 0 };
@@ -50,4 +52,89 @@ export function computeOverall(rows) {
     const tally = createTally();
     rows.forEach(row => addRow(tally, row));
     return finalize(tally);
+}
+
+
+// Quality & Retention
+
+export function computeSankeyFlow(rows) {
+    const enrolments = new Map();
+
+    for (const r of rows) {
+        if (r.examType === SPECIAL) continue;
+
+        const key = `${r.studentId}|${r.course}|${r.year}`;
+        if (!enrolments.has(key)) {
+            enrolments.set(key, {
+                anyEvaluated: false,
+                passedNormal: false,
+                passedResit: false,
+            });
+        }
+
+        const state = enrolments.get(key);
+
+        if (r.evaluated) {
+            state.anyEvaluated = true;
+        }
+
+        if (r.examType === RESIT) {
+            if (r.passed) state.passedResit = true;
+        } else if (r.examType === NORMAL) {
+            if (r.approved) state.passedNormal = true;
+        }
+    }
+
+    if (enrolments.size === 0) return { nodes: [], links: [] };
+
+    let attended = 0;
+    let dropout = 0;
+    let passNormal = 0;
+    let recurso = 0;
+    let passRecurso = 0;
+    let finalFailure = 0;
+
+    for (const state of enrolments.values()) {
+        if (!state.anyEvaluated) {
+            dropout++;
+        } else {
+            attended++;
+
+            if (state.passedNormal) {
+                passNormal++;
+            } else {
+                recurso++;
+
+                if (state.passedResit) {
+                    passRecurso++;
+                } else {
+                    finalFailure++;
+                }
+            }
+        }
+    }
+
+    const nodes = [
+        { name: "Total Enrolled" },        // 0
+        { name: "Attended / Evaluated" },  // 1
+        { name: "Unassessed / Dropouts" }, // 2
+        { name: "Pass Normal" },           // 3
+        { name: "Resit" },               // 4
+        { name: "Pass Resit" },          // 5
+        { name: "Final Failure" },         // 6
+    ];
+
+    const rawLinks = [
+        { source: 0, target: 1, value: attended },
+        { source: 0, target: 2, value: dropout },
+        { source: 1, target: 3, value: passNormal },
+        { source: 1, target: 4, value: recurso },
+        { source: 4, target: 5, value: passRecurso },
+        { source: 4, target: 6, value: finalFailure },
+    ];
+
+    return {
+        nodes,
+        links: rawLinks.filter(l => l.value > 0),
+    };
 }

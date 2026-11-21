@@ -1,4 +1,5 @@
 import { initDegreeManagement } from "./js/pages/degreeManagement.js";
+import { initQualityRetention } from "./js/pages/qualityRetention.js";
 
 let showSideBar = false;
 let cleanupPage = null;
@@ -37,6 +38,8 @@ async function loadPage(page) {
 
     if (page === "degree_management") {
         cleanupPage = initDegreeManagement();
+    } else if (page === "quality_retention") {
+        cleanupPage = initQualityRetention();
     }
 
     pageButtons.forEach(button => {
