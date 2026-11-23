@@ -1,3 +1,4 @@
+import { initCourseRegence } from "./js/pages/courseRegence.js";
 import { initDegreeManagement } from "./js/pages/degreeManagement.js";
 import { initQualityRetention } from "./js/pages/qualityRetention.js";
 
@@ -40,6 +41,8 @@ async function loadPage(page) {
         cleanupPage = initDegreeManagement();
     } else if (page === "quality_retention") {
         cleanupPage = initQualityRetention();
+    } else if (page === "course_regence") {
+        cleanupPage = initCourseRegence();
     }
 
     pageButtons.forEach(button => {
@@ -85,18 +88,18 @@ document.addEventListener("click", (e) => {
     }
 });
 
-pageContent.addEventListener("change", (e) => {
-    if (e.target.matches('.dropdown-options input[type="checkbox"]')) {
-        const multiSelect = e.target.closest(".multi-select");
-        const btn = multiSelect.querySelector(".dropdown-btn");
-        const checked = Array.from(
-            multiSelect.querySelectorAll('input[type="checkbox"]:checked')
-        ).map(cb => cb.value);
+// pageContent.addEventListener("change", (e) => {
+//     if (e.target.matches('.dropdown-options input[type="checkbox"]')) {
+//         const multiSelect = e.target.closest(".multi-select");
+//         const btn = multiSelect.querySelector(".dropdown-btn");
+//         const checked = Array.from(
+//             multiSelect.querySelectorAll('input[type="checkbox"]:checked')
+//         ).map(cb => cb.value);
 
-        const labelText = checked.length > 0 
-            ? checked.join(", ") 
-            : "Select academic years...";
+//         const labelText = checked.length > 0 
+//             ? checked.join(", ") 
+//             : "Select academic years...";
 
-        btn.innerHTML = `<span>${labelText}</span> <i class="fi fi-br-angle-small-down"></i>`;
-    }
-});
+//         btn.innerHTML = `<span>${labelText}</span> <i class="fi fi-br-angle-small-down"></i>`;
+//     }
+// });
