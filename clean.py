@@ -12,10 +12,8 @@ def main():
     departments_dir = "data/departments"
 
     fields_to_drop = [
-        "id_estudante",
         "mob_duracao_datainicial",
         "mob_nomeduracaoprograma",
-        "aprovado",
         "naoaprovado",
         "naoavaliado"
     ]

@@ -3,69 +3,40 @@
         <h2>QUALITY & RETENTION</h2>
         <h1>Institutional & Equity</h1>
         <div class="search-container">
-            
             <div class="op-container">
-                <label for="search-course">Department</label>
-                <select id="search-course" name="search-course">
-                    <option value="" disabled selected>Select a course...</option>
-                    <option value="math">Mathematics</option>
-                    <option value="programming">Programming</option>
-                    <option value="statistics">Statistics</option>
-                </select>
+                <label for="filter-department">Department</label>
+                <select id="filter-department"></select>
             </div>
 
             <div class="op-container">
-                <label for="search-year">Degree</label>
-                <select id="search-year" name="search-year">
-                    <option value="" disabled selected>Select an academic year...</option>
-                    <option value="2025-2026">2025/2026</option>
-                    <option value="2024-2025">2024/2025</option>
-                    <option value="2023-2024">2023/2024</option>
-                </select>
+                <label for="filter-year">Academic Year</label>
+                <select id="filter-year"></select>
             </div>
 
             <div class="op-container">
-                <label for="search-year">Curricular Year</label>
-                <select id="search-year" name="search-year">
-                    <option value="" disabled selected>Select an academic year...</option>
-                    <option value="2025-2026">2025/2026</option>
-                    <option value="2024-2025">2024/2025</option>
-                    <option value="2023-2024">2023/2024</option>
-                </select>
+                <label for="filter-population">Population</label>
+                <select id="filter-population"></select>
             </div>
 
             <div class="op-container">
-                <label>Academic Year</label>
-
-                <div class="multi-select">
-                    <button type="button" class="dropdown-btn">
-                        <span>Select academic years...</span>
-                        <i class="fi fi-br-angle-small-down"></i>
-                    </button>
-
-                    <div class="dropdown-options">
-                        <label>
-                            <input type="checkbox" value="2022/2023">
-                            2022/2023
-                        </label>
-                        <label>
-                            <input type="checkbox" value="2023/2024">
-                            2023/2024
-                        </label>
-                        <label>
-                            <input type="checkbox" value="2024/2025">
-                            2024/2025
-                        </label>
-                    </div>
-                </div>
+                <label for="filter-metric">Grouping Metric</label>
+                <select id="filter-metric"></select>
             </div>
 
+            <button type="button" id="btn-reset" class="btn-reset">
+                <i class="fi fi-br-rotate-right"></i>Reset view
+            </button>
         </div>
     </div>
     <div class="charts-layout">
-
-        <div class="chart-container"></div>
-        <div class="chart-container"></div>
-
+        
+        <article class="chart-container chart-card">
+            <header class="card-header">
+                <h3>Student Equity & Outcome Flow</h3>
+            </header>
+            <div id="sankey-chart" class="chart-body"></div>
+            <footer id="sankey-footer" class="card-footer"/>
+        </article>
+        
     </div>
 </section>

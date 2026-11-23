@@ -1,5 +1,6 @@
 import { initCourseRegence } from "./js/pages/courseRegence.js";
 import { initDegreeManagement } from "./js/pages/degreeManagement.js";
+import { initQualityRetention } from "./js/pages/qualityRetention.js";
 
 let showSideBar = false;
 let cleanupPage = null;
