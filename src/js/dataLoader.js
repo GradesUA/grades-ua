@@ -32,3 +32,14 @@ export function loadDepartment(departmentId) {
     }
     return departmentCache.get(departmentId);
 }
+
+export async function loadAllDepartments() {
+    const index = await loadDepartmentIndex();
+    const lists = await Promise.all(
+        index.map(async dept => {
+            const rows = await loadDepartment(dept.id);
+            return rows.map(r => ({ ...r, departmentId: dept.id }));
+        })
+    );
+    return lists.flat();
+}
