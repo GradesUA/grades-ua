@@ -637,3 +637,100 @@ button i {
 .dropdown-options input {
     accent-color: var(--accent);
 }
+
+.searchable-select {
+    position: relative;
+    width: 100%;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    height: 40px;
+    padding: 0 32px 0 12px;
+    background-color: var(--white-gray);
+    color: var(--blue);
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.search-input-wrapper input:hover {
+    border-color: var(--blue);
+}
+
+.search-input-wrapper input:focus {
+    border-color: #60A5FA;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.15);
+}
+
+.clear-btn {
+    position: absolute;
+    right: 6px;
+    background: transparent;
+    color: #64748b;
+    padding: 2px;
+    border-radius: 4px;
+}
+
+.clear-btn:hover {
+    color: var(--blue);
+    background-color: #e2e8f0;
+}
+
+.clear-btn i {
+    padding: 0;
+    font-size: 14px;
+}
+
+.searchable-select.open .dropdown-options {
+    display: flex;
+    flex-direction: column;
+    max-height: 240px;
+    overflow-y: auto;
+    gap: 2px;
+}
+
+.course-option {
+    padding: 8px 10px;
+    font-size: 13px;
+    color: var(--blue);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.course-option:hover,
+.course-option.active {
+    background-color: #eff6ff;
+    font-weight: 600;
+}
+
+.course-empty {
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.op-container select:disabled,
+.dropdown-btn:disabled {
+    background-color: #e2e8f0;
+    color: #94a3b8;
+    border-color: #cbd5e1;
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.dropdown-options .select-all-option {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 8px;
+    margin-bottom: 2px;
+    font-weight: 700;
+    color: var(--blue);
+}
