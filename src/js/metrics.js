@@ -138,3 +138,48 @@ export function computeSankeyFlow(rows) {
         links: rawLinks.filter(l => l.value > 0),
     };
 }
+
+export function computeDivergingEquity(rows, groupField = "regime") {
+    const enrolments = new Map();
+
+    for (const r of rows) {
+        if (r.examType === SPECIAL) continue;
+
+        const key = `${r.studentId}|${r.course}|${r.year}`;
+        if (!enrolments.has(key)) {
+            enrolments.set(key, {
+                group: r[groupField] || "Unknown",
+                passed: false,
+            });
+        }
+        if (r.approved) {
+            enrolments.get(key).passed = true;
+        }
+    }
+
+    const groups = new Map();
+    for (const item of enrolments.values()) {
+        if (!groups.has(item.group)) {
+            groups.set(item.group, { label: item.group, total: 0, passed: 0 });
+        }
+        const g = groups.get(item.group);
+        g.total += 1;
+        if (item.passed) g.passed += 1;
+    }
+
+    return Array.from(groups.values())
+        .filter(g => g.total > 0)
+        .map(g => {
+            const passPct = (g.passed / g.total) * 100;
+            const failPct = 100 - passPct;
+            return {
+                label: g.label,
+                total: g.total,
+                passed: g.passed,
+                failed: g.total - g.passed,
+                passPct,
+                failPct,
+            };
+        })
+        .sort((a, b) => b.total - a.total);
+}

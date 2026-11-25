@@ -23,6 +23,8 @@ function parseRow(row) {
         studentId: row.id_estudante,
         approved: row.aprovado === "1",
         evaluated: row.avaliado === "1",
+        regime: row.nome_regime,
+        accessType: row.nome_tipoacesso,
         
     };
 }
