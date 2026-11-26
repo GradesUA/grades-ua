@@ -138,3 +138,110 @@ export function computeSankeyFlow(rows) {
         links: rawLinks.filter(l => l.value > 0),
     };
 }
+
+// Course Regence
+
+export function computeCourseDegreeEquity(rows) {
+    const enrolments = new Map();
+
+    for (const r of rows) {
+        if (r.examType === SPECIAL) continue;
+
+        const key = `${r.studentId}|${r.course}|${r.year}`;
+        if (!enrolments.has(key)) {
+            enrolments.set(key, {
+                degree: r.degree || "Unknown",
+                approved: false,
+            });
+        }
+        if (r.approved) {
+            enrolments.get(key).approved = true;
+        }
+    }
+
+    const groups = new Map();
+    for (const item of enrolments.values()) {
+        if (!groups.has(item.degree)) {
+            groups.set(item.degree, { label: item.degree, total: 0, passed: 0 });
+        }
+        const g = groups.get(item.degree);
+        g.total += 1;
+        if (item.approved) g.passed += 1;
+    }
+
+    return Array.from(groups.values())
+        .filter(g => g.total > 0)
+        .map(g => {
+            const passPct = (g.passed / g.total) * 100;
+            return {
+                label: g.label,
+                total: g.total,
+                passed: g.passed,
+                failed: g.total - g.passed,
+                passPct,
+                failPct: 100 - passPct,
+            };
+        })
+        .sort((a, b) => b.total - a.total);
+}
+
+export function computeExamOutcomesByYear(rows, selectedYears) {
+    const years = (selectedYears && selectedYears.length > 0
+        ? [...selectedYears]
+        : Array.from(new Set(rows.map(r => r.year)))
+    ).sort(d3.ascending);
+
+    const yearKeys = years.map(String);
+    const enrolments = new Map();
+
+    for (const r of rows) {
+        if (r.examType === SPECIAL) continue;
+        const yKey = String(r.year);
+        if (!yearKeys.includes(yKey)) continue;
+
+        const key = `${r.studentId}|${r.course}|${r.year}`;
+        if (!enrolments.has(key)) {
+            enrolments.set(key, {
+                year: yKey,
+                passedNormal: false,
+                passedResit: false,
+            });
+        }
+
+        const state = enrolments.get(key);
+        if (r.examType === RESIT) {
+            if (r.passed) state.passedResit = true;
+        } else if (r.examType === NORMAL) {
+            if (r.approved) state.passedNormal = true;
+        }
+    }
+
+    const createRow = label => {
+        const obj = { label, total: 0 };
+        yearKeys.forEach(k => { obj[k] = 0; });
+        return obj;
+    };
+
+    const categories = {
+        normal: createRow("Pass Normal"),
+        resit: createRow("Pass Resit"),
+        failed: createRow("Failed / Unassessed"),
+    };
+
+    for (const state of enrolments.values()) {
+        let bucket = categories.failed;
+        if (state.passedNormal) {
+            bucket = categories.normal;
+        } else if (state.passedResit) {
+            bucket = categories.resit;
+        }
+
+        bucket[state.year] += 1;
+        bucket.total += 1;
+    }
+
+    return {
+        data: [categories.normal, categories.resit, categories.failed],
+        keys: yearKeys,
+    };
+}

@@ -1,5 +1,8 @@
 import { loadDepartmentIndex, loadAllDepartments } from "../dataLoader.js";
 import { createStore } from "../state.js";
+import { computeCourseDegreeEquity, computeExamOutcomesByYear } from "../metrics.js";
+import { createDivergingBarChart } from "../charts/divergingBarChart.js";
+import { createStackedBarChart } from "../charts/stackedBarChart.js";
 
 const normalizeText = str =>
     String(str)
@@ -19,16 +22,29 @@ export function initCourseRegence() {
         yearsBtn: $("btn-years-dropdown"),
         yearsOptions: $("filter-years-options"),
         reset: $("btn-reset"),
+        divergingBox: $("course-diverging-chart"),
+        degreesBadge: $("degrees-badge"),
+        divergingFooter: $("course-diverging-footer"),
+        stackedBox: $("exam-stacked-chart"),
+        stackedTitle: $("exam-stacked-title"),
+        scopeBadge: $("exam-scope-badge"),
+        stackedFooter: $("exam-stacked-footer"),
     };
 
     const store = createStore({
         course: "",
         department: "",
-        selectedYears: [], // array de anos selecionados
+        selectedYears: [],
+        selectedDegree: null, // curso clicado no gráfico da esquerda
     });
 
-    let departmentsMap = new Map(); // id -> nome completo
-    let allRows = [];               // todos os registos de todos os departamentos
+    const divergingChart = createDivergingBarChart(elements.divergingBox, {
+        onSelect: degree => store.set({ selectedDegree: degree }),
+    });
+    const stackedChart = createStackedBarChart(elements.stackedBox);
+
+    let departmentsMap = new Map();
+    let allRows = [];
     let availableCourses = [];
     let availableYearsForCourse = [];
     let latestRequest = 0;
@@ -56,13 +72,6 @@ export function initCourseRegence() {
         const container = d3.select(elements.courseOptions);
         container.selectAll("*").remove();
 
-        if (!cleanQuery) {
-            container.append("div")
-                .attr("class", `course-option${store.get().course === "" ? " active" : ""}`)
-                .text("All courses (UCs)")
-                .on("mousedown", () => selectCourse(""));
-        }
-
         if (filtered.length === 0) {
             container.append("div")
                 .attr("class", "course-empty")
@@ -84,30 +93,26 @@ export function initCourseRegence() {
         elements.courseBox.classList.remove("open");
 
         if (!courseName) {
-            // Nenhuma UC selecionada -> bloqueia Department e Academic Year
             lockSecondaryFilters();
-            store.set({ course: "", department: "", selectedYears: [] });
+            store.set({ course: "", department: "", selectedYears: [], selectedDegree: null });
             refresh();
             return;
         }
 
-        // UC selecionada -> desbloqueia e popula apenas com dados desta UC
         const courseRows = allRows.filter(r => r.course === courseName);
         const dept = populateDepartmentsForCourse(courseRows, store.get().department);
         const years = populateYearsForCourse(courseRows, dept);
 
-        store.set({ course: courseName, department: dept, selectedYears: years });
+        store.set({ course: courseName, department: dept, selectedYears: years, selectedDegree: null });
         refresh();
     }
 
-    // --- 2. Secondary Filters (Department & Academic Years) ---
+    // --- 2. Secondary Filters ---
 
     function lockSecondaryFilters() {
-        // Bloqueia Department
         setOptions(elements.department, [{ value: "", label: "All departments" }], "");
         elements.department.disabled = true;
 
-        // Bloqueia Academic Years
         availableYearsForCourse = [];
         elements.yearsOptions.innerHTML = "";
         elements.yearsContainer.classList.remove("open");
@@ -156,18 +161,15 @@ export function initCourseRegence() {
         availableYearsForCourse = Array.from(new Set(scopedRows.map(r => r.year)))
             .sort(d3.descending);
 
-        // Por defeito, quando escolhe uma UC, todos os anos vêm selecionados
         const selectedYears = [...availableYearsForCourse];
 
         const container = d3.select(elements.yearsOptions);
         container.selectAll("*").remove();
 
-        // Checkbox "All academic years" no topo
         container.append("label")
             .attr("class", "select-all-option")
             .html(`<input type="checkbox" id="chk-all-years" checked> All academic years`);
 
-        // Checkboxes individuais por ano
         container.selectAll("label.year-item")
             .data(availableYearsForCourse, d => d)
             .join("label")
@@ -181,23 +183,52 @@ export function initCourseRegence() {
 
     // --- 3. Rendering ---
 
-    function filteredRows() {
-        const { course, department, selectedYears } = store.get();
-        return allRows.filter(r => {
-            if (course && r.course !== course) return false;
-            if (department && r.departmentId !== department) return false;
-            if (course && selectedYears.length > 0 && !selectedYears.includes(r.year)) return false;
-            return true;
-        });
-    }
-
     function refresh() {
-        if (allRows.length === 0) return;
-        const { course, selectedYears } = store.get();
+        const { course, department, selectedYears, selectedDegree } = store.get();
 
-        // Se uma UC está selecionada mas o utilizador desmarcou TODOS os anos, passa array vazio
-        const rows = (course && selectedYears.length === 0) ? [] : filteredRows();
-        console.log("Course Regence filtered rows:", rows.length);
+        if (!course || selectedYears.length === 0) {
+            divergingChart.update([], null);
+            stackedChart.update({ data: [], keys: [] });
+            elements.degreesBadge.textContent = "0 DEGREES";
+            elements.scopeBadge.textContent = "NO COURSE";
+            elements.divergingFooter.textContent = "Select a course unit above to inspect performance across degrees.";
+            elements.stackedFooter.textContent = "Click a degree bar on the left to filter this breakdown.";
+            return;
+        }
+
+        // Linhas da UC filtradas por departamento e anos selecionados
+        const scopedRows = allRows.filter(r =>
+            r.course === course &&
+            (!department || r.departmentId === department) &&
+            selectedYears.includes(r.year)
+        );
+
+        const degreeEquity = computeCourseDegreeEquity(scopedRows);
+
+        // Se o curso selecionado deixou de existir nos filtros atuais, limpa a seleção
+        if (selectedDegree && !degreeEquity.some(d => d.label === selectedDegree)) {
+            store.set({ selectedDegree: null });
+            return;
+        }
+
+        elements.degreesBadge.textContent = `${degreeEquity.length} ${degreeEquity.length === 1 ? "DEGREE" : "DEGREES"}`;
+        elements.divergingFooter.textContent = selectedDegree
+            ? `Filtered by: ${selectedDegree} (click again to clear)`
+            : "Click a degree bar to isolate its exam season results on the right.";
+        divergingChart.update(degreeEquity, selectedDegree);
+
+        // Gráfico da direita: filtra ainda pelo curso clicado no gráfico da esquerda (se existir)
+        const outcomeRows = selectedDegree
+            ? scopedRows.filter(r => r.degree === selectedDegree)
+            : scopedRows;
+
+        const stackedData = computeExamOutcomesByYear(outcomeRows, selectedYears);
+        stackedChart.update(stackedData);
+
+        elements.scopeBadge.textContent = selectedDegree ? selectedDegree : "ALL DEGREES";
+        elements.stackedFooter.textContent = selectedDegree
+            ? `Showing exam outcomes exclusively for ${selectedDegree}.`
+            : `Aggregated exam outcomes across all ${degreeEquity.length} degrees.`;
     }
 
     // --- 4. Events ---
@@ -232,27 +263,23 @@ export function initCourseRegence() {
     };
     document.addEventListener("click", onDocumentClick);
 
-    // Mudança de Departamento (dentro da UC selecionada)
     elements.department.addEventListener("change", () => {
         const dept = elements.department.value;
         const courseRows = allRows.filter(r => r.course === store.get().course);
         const years = populateYearsForCourse(courseRows, dept);
 
-        store.set({ department: dept, selectedYears: years });
+        store.set({ department: dept, selectedYears: years, selectedDegree: null });
         refresh();
     });
 
-    // Mudança nas checkboxes de Academic Year ("All academic years" vs anos individuais)
     elements.yearsOptions.addEventListener("change", e => {
         const target = e.target;
         const allCheckbox = elements.yearsOptions.querySelector("#chk-all-years");
         const yearCheckboxes = Array.from(elements.yearsOptions.querySelectorAll(".chk-year"));
 
         if (target.id === "chk-all-years") {
-            // Clicou em "All academic years": marca ou desmarca todos os anos
             yearCheckboxes.forEach(cb => { cb.checked = target.checked; });
         } else if (target.classList.contains("chk-year")) {
-            // Clicou num ano individual: atualiza o estado de "All academic years"
             allCheckbox.checked = yearCheckboxes.every(cb => cb.checked);
         }
 
@@ -267,6 +294,11 @@ export function initCourseRegence() {
 
     elements.reset.addEventListener("click", () => {
         selectCourse("");
+    });
+
+    // Reage ao clique nas barras do gráfico divergente
+    const unsubscribe = store.subscribe((_, changed) => {
+        if (changed.length === 1 && changed[0] === "selectedDegree") refresh();
     });
 
     // --- 5. Bootstrap ---
@@ -290,6 +322,9 @@ export function initCourseRegence() {
 
     return () => {
         latestRequest++;
+        unsubscribe();
         document.removeEventListener("click", onDocumentClick);
+        divergingChart.destroy();
+        stackedChart.destroy();
     };
 }
