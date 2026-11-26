@@ -1,12 +1,8 @@
 import { tooltip, escapeHtml } from "./tooltip.js";
 
-const MARGIN = { top: 28, right: 36, bottom: 24, left: 170 };
-const COLOR_LEFT = "#e03030";  // Fail / Unassessed (esquerda)
-const COLOR_RIGHT = "#22C55E"; // Pass (direita)
-
-function truncateLabel(text, maxChars = 24) {
-    return text.length > maxChars ? `${text.slice(0, maxChars - 1)}…` : text;
-}
+const MARGIN = { top: 28, right: 24, bottom: 24, left: 310 };
+const COLOR_LEFT = "#e03030";  // Fail / Unassessed
+const COLOR_RIGHT = "#22C55E"; // Approved
 
 function halfRoundedBarPath(x, y, width, height, radius, side) {
     if (width <= 0) return "";
@@ -36,8 +32,9 @@ function halfRoundedBarPath(x, y, width, height, radius, side) {
     `;
 }
 
-export function createDivergingBarChart(container) {
+export function createDivergingBarChart(container, { onSelect } = {}) {
     let currentData = [];
+    let selectedLabel = null;
 
     const svg = d3.select(container)
         .append("svg")
@@ -64,15 +61,15 @@ export function createDivergingBarChart(container) {
             return;
         }
 
-        const leftMargin = Math.min(MARGIN.left, Math.max(110, width * 0.34));
-        const innerW = width - leftMargin - MARGIN.right;
+        const leftMargin = Math.min(MARGIN.left, Math.max(130, width * 0.36));
+        const innerW = Math.max(120, width - leftMargin - MARGIN.right);
         const innerH = height - MARGIN.top - MARGIN.bottom;
 
         const g = svg.append("g")
             .attr("transform", `translate(${leftMargin},${MARGIN.top})`);
 
         const x = d3.scaleLinear()
-            .domain([-112, 112])
+            .domain([-125, 115])
             .range([0, innerW]);
 
         const y = d3.scaleBand()
@@ -86,22 +83,22 @@ export function createDivergingBarChart(container) {
 
         // Cabeçalhos
         g.append("text")
-            .attr("x", centerX - 10)
+            .attr("x", centerX - 8)
             .attr("y", -10)
             .attr("text-anchor", "end")
-            .attr("font-size", "11px")
+            .attr("font-size", "10.5px")
             .attr("font-weight", "700")
             .attr("fill", COLOR_LEFT)
-            .text("← FAIL / UNASSESSED (%)");
+            .text("← FAIL / UNASSESSED");
 
         g.append("text")
-            .attr("x", centerX + 10)
+            .attr("x", centerX + 8)
             .attr("y", -10)
             .attr("text-anchor", "start")
-            .attr("font-size", "11px")
+            .attr("font-size", "10.5px")
             .attr("font-weight", "700")
             .attr("fill", COLOR_RIGHT)
-            .text("APPROVED (%) →");
+            .text("APPROVED →");
 
         // Linhas guia
         [-50, 50].forEach(tick => {
@@ -114,25 +111,47 @@ export function createDivergingBarChart(container) {
                 .attr("stroke-dasharray", "3 3");
         });
 
+        const hasSelection = selectedLabel !== null;
         const rows = g.selectAll("g.div-row")
             .data(currentData)
             .join("g")
             .attr("class", "div-row")
-            .attr("transform", d => `translate(0, ${y(d.label)})`);
+            .attr("transform", d => `translate(0, ${y(d.label)})`)
+            .style("opacity", d => (!hasSelection || d.label === selectedLabel) ? 1 : 0.35);
 
-        // Legenda da categoria
-        const maxChars = Math.max(14, Math.floor(leftMargin / 7));
+        rows.filter(d => d.label === selectedLabel)
+            .append("rect")
+            .attr("x", -leftMargin + 2)
+            .attr("y", 2)
+            .attr("width", width - 4)
+            .attr("height", y.bandwidth() - 4)
+            .attr("rx", 6)
+            .attr("fill", "#EFF6FF")
+            .attr("stroke", "#93C5FD");
+
+        // caption
+        const maxLabelWidth = leftMargin - 22;
         rows.append("text")
-            .attr("x", -10)
+            .attr("x", -16)
             .attr("y", yOffset + barHeight / 2)
             .attr("dy", "0.35em")
             .attr("text-anchor", "end")
-            .attr("font-size", "11.5px")
-            .attr("font-weight", "600")
+            .attr("font-size", "10.5px")
+            .attr("font-weight", d => d.label === selectedLabel ? "700" : "600")
             .attr("fill", "#102A43")
-            .text(d => `${truncateLabel(d.label, maxChars)} (${d.total})`);
+            .each(function(d) {
+                const textEl = d3.select(this);
+                const suffix = ` (${d.total})`;
+                let label = d.label;
 
-        // Barra esquerda
+                textEl.text(label + suffix);
+                while (this.getComputedTextLength() > maxLabelWidth && label.length > 3) {
+                    label = label.slice(0, -1).trimEnd();
+                    textEl.text(`${label}…${suffix}`);
+                }
+            });
+
+        // left bar
         rows.append("path")
             .attr("d", d => {
                 const bx = x(-d.failPct);
@@ -140,9 +159,9 @@ export function createDivergingBarChart(container) {
                 return halfRoundedBarPath(bx, yOffset, bw, barHeight, 4, "left");
             })
             .attr("fill", COLOR_LEFT)
-            .attr("fill-opacity", 0.88);
+            .attr("fill-opacity", 0.9);
 
-        // Barra direita
+        // right bar
         rows.append("path")
             .attr("d", d => {
                 const bw = Math.max(0, x(d.passPct) - centerX);
@@ -151,29 +170,29 @@ export function createDivergingBarChart(container) {
             .attr("fill", COLOR_RIGHT)
             .attr("fill-opacity", 0.9);
 
-        // Percentagem esquerda
+        // left %
         rows.append("text")
-            .attr("x", d => x(-d.failPct) - 6)
+            .attr("x", d => x(-d.failPct) - 5)
             .attr("y", yOffset + barHeight / 2)
             .attr("dy", "0.35em")
             .attr("text-anchor", "end")
-            .attr("font-size", "11px")
+            .attr("font-size", "10.5px")
             .attr("font-weight", "700")
             .attr("fill", COLOR_LEFT)
             .text(d => d.failPct > 0 ? `${Math.round(d.failPct)}%` : "");
 
-        // Percentagem direita
+        // right %
         rows.append("text")
-            .attr("x", d => x(d.passPct) + 6)
+            .attr("x", d => x(d.passPct) + 5)
             .attr("y", yOffset + barHeight / 2)
             .attr("dy", "0.35em")
             .attr("text-anchor", "start")
-            .attr("font-size", "11px")
+            .attr("font-size", "10.5px")
             .attr("font-weight", "700")
             .attr("fill", COLOR_RIGHT)
             .text(d => d.passPct > 0 ? `${Math.round(d.passPct)}%` : "");
 
-        // Eixo central
+        // central axis
         g.append("line")
             .attr("x1", centerX)
             .attr("x2", centerX)
@@ -182,20 +201,24 @@ export function createDivergingBarChart(container) {
             .attr("stroke", "#102A43")
             .attr("stroke-width", 2);
 
-        // Área para tooltip
+        // tooltip
         rows.append("rect")
             .attr("x", -leftMargin)
             .attr("y", 0)
-            .attr("width", width - MARGIN.right)
+            .attr("width", width)
             .attr("height", y.bandwidth())
             .attr("fill", "transparent")
-            .style("cursor", "pointer")
+            .style("cursor", onSelect ? "pointer" : "default")
+            .on("click", (_, d) => {
+                if (!onSelect) return;
+                onSelect(selectedLabel === d.label ? null : d.label);
+            })
             .on("mouseenter", (event, d) => {
                 tooltip.show(
                     `<strong>${escapeHtml(d.label)}</strong>
                     Approved: <b>${d.passPct.toFixed(1)}%</b> (${d.passed})<br>
                     Fail / Unassessed: <b>${d.failPct.toFixed(1)}%</b> (${d.failed})<br>
-                    <span class="muted">Total enrolments: ${d.total}</span>`,
+                    <span class="muted">Total enrolments: ${d.total}${onSelect ? " · Click to filter" : ""}</span>`,
                     event
                 );
             })
@@ -204,8 +227,9 @@ export function createDivergingBarChart(container) {
     }
 
     return {
-        update(data) {
+        update(data, activeLabel = null) {
             currentData = data;
+            selectedLabel = activeLabel;
             render();
         },
         destroy() {

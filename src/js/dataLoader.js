@@ -41,13 +41,27 @@ export function loadDepartment(departmentId) {
     return departmentCache.get(departmentId);
 }
 
-export async function loadAllDepartments() {
-    const index = await loadDepartmentIndex();
-    const lists = await Promise.all(
-        index.map(async dept => {
-            const rows = await loadDepartment(dept.id);
-            return rows.map(r => ({ ...r, departmentId: dept.id }));
-        })
-    );
-    return lists.flat();
+let allDepartmentsPromise = null;
+
+export function loadAllDepartments() {
+    if (!allDepartmentsPromise) {
+        allDepartmentsPromise = loadDepartmentIndex()
+            .then(index =>
+                Promise.all(
+                    index.map(async dept => {
+                        const rows = await loadDepartment(dept.id);
+                        for (let i = 0; i < rows.length; i++) {
+                            rows[i].departmentId = dept.id;
+                        }
+                        return rows;
+                    })
+                )
+            )
+            .then(lists => lists.flat())
+            .catch(error => {
+                allDepartmentsPromise = null;
+                throw error;
+            });
+    }
+    return allDepartmentsPromise;
 }

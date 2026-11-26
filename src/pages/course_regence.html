@@ -52,7 +52,22 @@
     </div>
 
     <div class="charts-layout">
-        <div class="chart-container"></div>
-        <div class="chart-container"></div>
+        <article class="chart-container chart-card">
+            <header class="card-header">
+                <h3>Course Performance by Degree</h3>
+                <span id="degrees-badge" class="badge">0 DEGREES</span>
+            </header>
+            <div id="course-diverging-chart" class="chart-body"></div>
+            <footer id="course-diverging-footer" class="card-footer">Select a course unit above to inspect performance across degrees.</footer>
+        </article>
+        
+        <article class="chart-container chart-card">
+            <header class="card-header">
+                <h3 id="exam-stacked-title">Exam Season Breakdown</h3>
+                <span id="exam-scope-badge" class="badge">ALL DEGREES</span>
+            </header>
+            <div id="exam-stacked-chart" class="chart-body"></div>
+            <footer id="exam-stacked-footer" class="card-footer">Click a degree bar on the left to filter this breakdown.</footer>
+        </article>
     </div>
 </section>
