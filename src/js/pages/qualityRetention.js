@@ -1,25 +1,37 @@
 import { loadDepartmentIndex, loadDepartment } from "../dataLoader.js";
 import { createStore } from "../state.js";
-import { computeSankeyFlow } from "../metrics.js";
+import { computeSankeyFlow, computeDivergingEquity } from "../metrics.js";
 import { createSankeyChart } from "../charts/sankeyChart.js";
+import { createDivergingBarChart } from "../charts/divergingBarChart.js";
 
 const DEFAULT_DEPARTMENT = "deti";
+const DEFAULT_METRIC = "regime";
+
+const METRIC_OPTIONS = [
+    { value: "regime", label: "Study Regime" },
+    { value: "accessType", label: "Access Type" },
+];
 
 export function initQualityRetention() {
     const $ = id => document.getElementById(id);
     const elements = {
         department: $("filter-department"),
         year: $("filter-year"),
+        metric: $("filter-metric"),
         reset: $("btn-reset"),
         sankeyBox: $("sankey-chart"),
+        divergingBox: $("diverging-chart"),
+        divergingFooter: $("diverging-footer"),
     };
 
     const store = createStore({
         department: DEFAULT_DEPARTMENT,
         year: "",
+        metric: DEFAULT_METRIC,
     });
 
     const sankey = createSankeyChart(elements.sankeyBox);
+    const diverging = createDivergingBarChart(elements.divergingBox);
 
     let departmentRows = [];
     let latestRequest = 0;
@@ -74,10 +86,21 @@ export function initQualityRetention() {
     function refresh() {
         if (departmentRows.length === 0) return;
         const rows = filteredRows();
+        const { metric } = store.get();
+
         const flowData = computeSankeyFlow(rows);
         sankey.update(flowData);
+
+        const equityData = computeDivergingEquity(rows, metric);
+        diverging.update(equityData);
+
+        if (elements.divergingFooter) {
+            const metricLabel = METRIC_OPTIONS.find(m => m.value === metric)?.label ?? metric;
+            elements.divergingFooter.textContent = `Comparing ${equityData.length} groups by ${metricLabel}`;
+        }
     }
 
+    // Events
     elements.department.addEventListener("change", () => {
         changeDepartment(elements.department.value, { keepFilters: true });
     });
@@ -87,9 +110,19 @@ export function initQualityRetention() {
         refresh();
     });
 
+    elements.metric.addEventListener("change", () => {
+        store.set({ metric: elements.metric.value });
+        refresh();
+    });
+
     elements.reset.addEventListener("click", () => {
+        setOptions(elements.metric, METRIC_OPTIONS, DEFAULT_METRIC);
+        store.set({ metric: DEFAULT_METRIC });
         changeDepartment(DEFAULT_DEPARTMENT, { keepFilters: false });
     });
+
+    // Bootstrap
+    setOptions(elements.metric, METRIC_OPTIONS, DEFAULT_METRIC);
 
     loadDepartmentIndex()
         .then(index => {
@@ -104,5 +137,6 @@ export function initQualityRetention() {
 
     return () => {
         latestRequest++;
+        diverging.destroy();
     };
 }

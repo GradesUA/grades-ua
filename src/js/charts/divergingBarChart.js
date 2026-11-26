@@ -61,11 +61,11 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
                 .attr("x", width / 2)
                 .attr("y", height / 2)
                 .attr("text-anchor", "middle")
-                .text("Select a course unit to view degree breakdown");
+                .text("No data available for this selection");
             return;
         }
 
-        const leftMargin = Math.min(MARGIN.left, Math.max(120, width * 0.36));
+        const leftMargin = Math.min(MARGIN.left, Math.max(110, width * 0.34));
         const innerW = width - leftMargin - MARGIN.right;
         const innerH = height - MARGIN.top - MARGIN.bottom;
 
@@ -165,7 +165,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("fill", COLOR_RIGHT)
             .attr("fill-opacity", 0.9);
 
-        // Percentagens nas pontas
+        // Percentagem esquerda
         rows.append("text")
             .attr("x", d => x(-d.failPct) - 6)
             .attr("y", yOffset + barHeight / 2)
@@ -176,6 +176,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("fill", COLOR_LEFT)
             .text(d => d.failPct > 0 ? `${Math.round(d.failPct)}%` : "");
 
+        // Percentagem direita
         rows.append("text")
             .attr("x", d => x(d.passPct) + 6)
             .attr("y", yOffset + barHeight / 2)

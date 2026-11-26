@@ -140,8 +140,7 @@ export function computeSankeyFlow(rows) {
 }
 
 // Course Regence
-
-export function computeCourseDegreeEquity(rows) {
+export function computeDivergingEquity(rows, groupField = "regime") {
     const enrolments = new Map();
 
     for (const r of rows) {
@@ -150,23 +149,23 @@ export function computeCourseDegreeEquity(rows) {
         const key = `${r.studentId}|${r.course}|${r.year}`;
         if (!enrolments.has(key)) {
             enrolments.set(key, {
-                degree: r.degree || "Unknown",
-                approved: false,
+                group: r[groupField] || "Unknown",
+                passed: false,
             });
         }
         if (r.approved) {
-            enrolments.get(key).approved = true;
+            enrolments.get(key).passed = true;
         }
     }
 
     const groups = new Map();
     for (const item of enrolments.values()) {
-        if (!groups.has(item.degree)) {
-            groups.set(item.degree, { label: item.degree, total: 0, passed: 0 });
+        if (!groups.has(item.group)) {
+            groups.set(item.group, { label: item.group, total: 0, passed: 0 });
         }
-        const g = groups.get(item.degree);
+        const g = groups.get(item.group);
         g.total += 1;
-        if (item.approved) g.passed += 1;
+        if (item.passed) g.passed += 1;
     }
 
     return Array.from(groups.values())
