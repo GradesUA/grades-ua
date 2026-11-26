@@ -1,6 +1,7 @@
-import { loadDepartmentIndex, loadAllDepartments } from "../dataLoader.js";
+// import { loadDepartmentIndex, loadAllDepartments } from "../dataLoader.js";
+import { loadDepartmentIndex, loadDepartment } from "../dataLoader.js";
 import { createStore } from "../state.js";
-import { computeCourseDegreeEquity, computeExamOutcomesByYear } from "../metrics.js";
+import { computeDivergingEquity, computeExamOutcomesByYear } from "../metrics.js";
 import { createDivergingBarChart } from "../charts/divergingBarChart.js";
 import { createStackedBarChart } from "../charts/stackedBarChart.js";
 
@@ -35,7 +36,7 @@ export function initCourseRegence() {
         course: "",
         department: "",
         selectedYears: [],
-        selectedDegree: null, // curso clicado no gráfico da esquerda
+        selectedDegree: null,
     });
 
     const divergingChart = createDivergingBarChart(elements.divergingBox, {
@@ -203,7 +204,7 @@ export function initCourseRegence() {
             selectedYears.includes(r.year)
         );
 
-        const degreeEquity = computeCourseDegreeEquity(scopedRows);
+        const degreeEquity = computeDivergingEquity(scopedRows, "degree");
 
         // Se o curso selecionado deixou de existir nos filtros atuais, limpa a seleção
         if (selectedDegree && !degreeEquity.some(d => d.label === selectedDegree)) {
@@ -304,21 +305,55 @@ export function initCourseRegence() {
     // --- 5. Bootstrap ---
 
     lockSecondaryFilters();
+    elements.courseInput.placeholder = "Loading courses...";
 
     const requestId = ++latestRequest;
-    Promise.all([loadDepartmentIndex(), loadAllDepartments()])
-        .then(([index, rows]) => {
+    const coursesSet = new Set();
+
+    loadDepartmentIndex()
+        .then(index => {
             if (requestId !== latestRequest) return;
-
             departmentsMap = new Map(index.map(d => [d.id, d.name]));
-            allRows = rows;
-            availableCourses = Array.from(new Set(allRows.map(r => r.course).filter(Boolean)))
-                .sort(d3.ascending);
 
-            renderCourseDropdown("");
+            // Carrega todos em paralelo, mas atualiza a lista de UCs assim que cada departamento chega
+            const deptTasks = index.map(async dept => {
+                const rows = await loadDepartment(dept.id);
+                if (requestId !== latestRequest) return [];
+
+                let addedNew = false;
+                for (let i = 0; i < rows.length; i++) {
+                    rows[i].departmentId = dept.id;
+                    const c = rows[i].course;
+                    if (c && !coursesSet.has(c)) {
+                        coursesSet.add(c);
+                        addedNew = true;
+                    }
+                }
+
+                if (addedNew) {
+                    availableCourses = Array.from(coursesSet).sort(d3.ascending);
+                    elements.courseInput.placeholder = "Select a course (type to search)...";
+                    if (elements.courseBox.classList.contains("open")) {
+                        renderCourseDropdown(elements.courseInput.value);
+                    }
+                }
+
+                return rows;
+            });
+
+            return Promise.all(deptTasks);
+        })
+        .then(lists => {
+            if (!lists || requestId !== latestRequest) return;
+            allRows = lists.flat();
+            elements.courseInput.placeholder = "Select a course (type to search)...";
+            renderCourseDropdown(elements.courseInput.value);
             refresh();
         })
-        .catch(error => console.error(error));
+        .catch(error => {
+            console.error(error);
+            elements.courseInput.placeholder = "Error loading courses";
+        });
 
     return () => {
         latestRequest++;
@@ -327,4 +362,5 @@ export function initCourseRegence() {
         divergingChart.destroy();
         stackedChart.destroy();
     };
+
 }

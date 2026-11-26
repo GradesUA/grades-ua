@@ -1,6 +1,6 @@
 import { tooltip, escapeHtml } from "./tooltip.js";
 
-const MARGIN = { top: 38, right: 36, bottom: 28, left: 145 };
+const MARGIN = { right: 36, bottom: 28, left: 145 };
 const PALETTE = ["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4", "#64748B"];
 
 export function createStackedBarChart(container) {
@@ -32,17 +32,24 @@ export function createStackedBarChart(container) {
             return;
         }
 
-        const innerW = width - MARGIN.left - MARGIN.right;
-        const innerH = height - MARGIN.top - MARGIN.bottom;
+        const legendStartX = 12;
+        const itemWidth = 86;
+        const availableLegendW = Math.max(itemWidth, width - legendStartX - 12);
+        const itemsPerRow = Math.max(1, Math.floor(availableLegendW / itemWidth));
+        const legendRows = Math.ceil(keys.length / itemsPerRow);
+        const topMargin = 20 + legendRows * 18;
+
+        const innerW = Math.max(80, width - MARGIN.left - MARGIN.right);
+        const innerH = Math.max(60, height - topMargin - MARGIN.bottom);
 
         const g = svg.append("g")
-            .attr("transform", `translate(${MARGIN.left},${MARGIN.top})`);
+            .attr("transform", `translate(${MARGIN.left},${topMargin})`);
 
         const stackedSeries = d3.stack().keys(keys)(data);
 
-        const maxTotal = d3.max(data, d => d.total) || 1;
+        const maxTotal = d3.max(data, d => d.total) || 0;
         const x = d3.scaleLinear()
-            .domain([0, maxTotal * 1.1])
+            .domain([0, Math.max(1, maxTotal) * 1.12])
             .nice()
             .range([0, innerW]);
 
@@ -55,15 +62,16 @@ export function createStackedBarChart(container) {
             .domain(keys)
             .range(PALETTE);
 
-        // Legenda dos anos letivos no topo
         const legend = svg.append("g")
-            .attr("transform", `translate(${MARGIN.left}, 14)`);
+            .attr("transform", `translate(${legendStartX}, 10)`);
 
-        let legendX = 0;
-        keys.forEach(k => {
+        keys.forEach((k, idx) => {
+            const col = idx % itemsPerRow;
+            const row = Math.floor(idx / itemsPerRow);
             const labelText = `${k}/${+k + 1}`;
+
             const item = legend.append("g")
-                .attr("transform", `translate(${legendX}, 0)`);
+                .attr("transform", `translate(${col * itemWidth}, ${row * 18})`);
 
             item.append("rect")
                 .attr("width", 10)
@@ -78,22 +86,21 @@ export function createStackedBarChart(container) {
                 .attr("font-weight", "600")
                 .attr("fill", "#102A43")
                 .text(labelText);
-
-            legendX += labelText.length * 6.8 + 26;
         });
 
-        // Grelha vertical e Eixo X
+        const tickCount = Math.min(5, Math.max(1, maxTotal));
+
+        // vertical grid e x axis
         g.append("g")
             .attr("class", "grid")
-            .call(d3.axisBottom(x).ticks(5).tickSize(innerH).tickFormat(""))
+            .call(d3.axisBottom(x).ticks(tickCount).tickSize(innerH).tickFormat(""))
             .call(sel => sel.select(".domain").remove());
 
         g.append("g")
             .attr("class", "axis")
             .attr("transform", `translate(0, ${innerH})`)
-            .call(d3.axisBottom(x).ticks(5).tickFormat(d3.format("d")));
+            .call(d3.axisBottom(x).ticks(tickCount).tickFormat(d3.format("d")));
 
-        // Rótulos à esquerda (Pass Normal, Pass Resit, Failed / Unassessed)
         g.selectAll("text.cat-label")
             .data(data)
             .join("text")
@@ -110,7 +117,7 @@ export function createStackedBarChart(container) {
         const barHeight = Math.min(y.bandwidth(), 38);
         const yOffset = (y.bandwidth() - barHeight) / 2;
 
-        // Barras empilhadas por ano
+        // stacked bars
         const layers = g.selectAll("g.layer")
             .data(stackedSeries)
             .join("g")
@@ -148,7 +155,6 @@ export function createStackedBarChart(container) {
             .on("mousemove", event => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide());
 
-        // Total à direita de cada barra
         g.selectAll("text.total-label")
             .data(data)
             .join("text")

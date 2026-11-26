@@ -87,19 +87,3 @@ document.addEventListener("click", (e) => {
         });
     }
 });
-
-// pageContent.addEventListener("change", (e) => {
-//     if (e.target.matches('.dropdown-options input[type="checkbox"]')) {
-//         const multiSelect = e.target.closest(".multi-select");
-//         const btn = multiSelect.querySelector(".dropdown-btn");
-//         const checked = Array.from(
-//             multiSelect.querySelectorAll('input[type="checkbox"]:checked')
-//         ).map(cb => cb.value);
-
-//         const labelText = checked.length > 0 
-//             ? checked.join(", ") 
-//             : "Select academic years...";
-
-//         btn.innerHTML = `<span>${labelText}</span> <i class="fi fi-br-angle-small-down"></i>`;
-//     }
-// });
