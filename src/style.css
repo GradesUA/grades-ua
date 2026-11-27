@@ -881,3 +881,137 @@ body.landing .main {
 .home-card:hover .home-card-link i {
     transform: translateX(3px);
 }
+
+.course-picker {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.course-picker .searchable-select.open .dropdown-options {
+    display: flex;
+}
+
+.course-picker .course-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.course-option .swatch,
+.course-chip .swatch,
+.callout-row .swatch {
+    flex: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.course-option .swatch {
+    border: 1px solid var(--border-strong);
+}
+
+.course-option.selected .swatch {
+    border-color: transparent;
+}
+
+.course-option-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.course-option-meta {
+    flex: none;
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+.course-option.disabled {
+    color: var(--gray);
+    cursor: not-allowed;
+}
+
+.course-note {
+    padding: 6px 10px;
+    font-size: 11.5px;
+    color: var(--warning-text);
+    border-bottom: 1px solid var(--border);
+}
+
+.course-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.course-chips:empty {
+    display: none;
+}
+
+.course-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    padding: 3px 4px 3px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    background-color: var(--white);
+    font-size: 12px;
+    color: var(--blue);
+}
+
+.course-chip-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.course-chip-remove {
+    flex: none;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+}
+
+.course-chip-remove:hover {
+    background-color: var(--border);
+    color: var(--blue);
+}
+
+.course-chip-remove i {
+    display: flex;
+    padding: 0;
+    font-size: 14px;
+}
+
+.callout-row + .callout-row {
+    margin-top: 4px;
+}
+
+.callout-row .swatch {
+    display: inline-block;
+    margin-right: 6px;
+}
+
+.callout-note {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+#sankey-badge {
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}

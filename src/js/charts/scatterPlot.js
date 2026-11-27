@@ -26,7 +26,7 @@ export function createScatterPlot(container, { onSelect }) {
         .text("No course units match the current filters");
 
     let currentStats = [];
-    let currentSelection = null;
+    let currentSelection = new Map();
 
     function render() {
         tooltip.hide(); // points are re-joined on every render, so mouseleave may never fire
@@ -68,7 +68,7 @@ export function createScatterPlot(container, { onSelect }) {
         medianLine.attr("x1", x(medianVolume)).attr("x2", x(medianVolume)).attr("y1", y(0)).attr("y2", y(1));
         thresholdLine.attr("x1", x.range()[0]).attr("x2", x.range()[1]).attr("y1", y(FAIL_THRESHOLD)).attr("y2", y(FAIL_THRESHOLD));
 
-        const hasSelection = currentSelection !== null;
+        const hasSelection = currentSelection.size > 0;
         // draw larger bubbles first so small ones stay clickable
         const sorted = [...currentStats].sort((a, b) => b.enrolled - a.enrolled);
 
@@ -84,21 +84,23 @@ export function createScatterPlot(container, { onSelect }) {
             update => update,
             exit => exit.transition(t).style("opacity", 0).remove(),
         )
-            .on("click", (event, d) => onSelect(d.course === currentSelection ? null : d.course))
+            .on("click", (event, d) => onSelect(d.course))
             .on("mouseenter", (event, d) => tooltip.show(
                 `<strong>${escapeHtml(d.course)}</strong>
                  <div>Failure rate: <b>${formatPercent(d.failRate)}</b></div>
                  <div>Pass rate: <b>${formatPercent(d.passRate)}</b></div>
-                 <div>Enrolments: <b>${d.enrolled}</b></div>`, event))
+                 <div>Enrolments: <b>${d.enrolled}</b></div>
+                 <div class="muted">${currentSelection.has(d.course) ? "Click to remove from" : "Click to add to"} the trend chart</div>`, event))
             .on("mousemove", event => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide())
             .each(function (d) {
-                const selected = d.course === currentSelection;
+                const color = currentSelection.get(d.course);
                 const g = d3.select(this);
-                g.classed("selected", selected);
-                g.select(".dot").attr("r", radius(d.enrolled))
-                    .attr("fill-opacity", hasSelection && !selected ? 0.18 : 0.75);
-                g.select(".ring").attr("r", radius(d.enrolled) + 4).style("display", selected ? null : "none");
+                g.classed("selected", !!color);
+                g.select(".dot").attr("r", radius(d.enrolled)).attr("fill", color ?? POINT_COLOR)
+                    .attr("fill-opacity", color ? 0.9 : hasSelection ? 0.18 : 0.75);
+                g.select(".ring").attr("r", radius(d.enrolled) + 4).style("stroke", color ?? null)
+                    .style("display", color ? null : "none");
             })
             .transition(t)
             .attr("transform", d => `translate(${x(d.enrolled)},${y(d.failRate)})`)
@@ -110,9 +112,9 @@ export function createScatterPlot(container, { onSelect }) {
 
     function renderLabels(x, y, radius, medianVolume, width, height) {
         const priority = currentStats
-            .filter(stat => stat.course === currentSelection
+            .filter(stat => currentSelection.has(stat.course)
                 || (stat.failRate >= FAIL_THRESHOLD && stat.enrolled >= medianVolume))
-            .sort((a, b) => (b.course === currentSelection) - (a.course === currentSelection)
+            .sort((a, b) => currentSelection.has(b.course) - currentSelection.has(a.course)
                 || b.failRate * b.enrolled - a.failRate * a.enrolled);
 
         const occupied = currentStats.map(stat => ({
@@ -125,7 +127,7 @@ export function createScatterPlot(container, { onSelect }) {
 
         const placed = [];
         for (const stat of priority) {
-            if (placed.length >= MAX_LABELS && stat.course !== currentSelection) break;
+            if (placed.length >= MAX_LABELS && !currentSelection.has(stat.course)) break;
             const text = stat.course.length > LABEL_MAX_CHARS ? `${stat.course.slice(0, LABEL_MAX_CHARS - 1)}…` : stat.course;
             const w = text.length * CHAR_WIDTH;
             const r = radius(stat.enrolled);
@@ -149,7 +151,7 @@ export function createScatterPlot(container, { onSelect }) {
         }
 
         labelsGroup.selectAll("text").data(placed, d => d.course).join("text")
-            .attr("class", d => `point-label${d.course === currentSelection ? " active" : ""}`)
+            .attr("class", d => `point-label${currentSelection.has(d.course) ? " active" : ""}`)
             .attr("x", d => d.x).attr("y", d => d.y).attr("text-anchor", d => d.anchor)
             .text(d => d.text);
     }
@@ -157,9 +159,9 @@ export function createScatterPlot(container, { onSelect }) {
     new ResizeObserver(() => render()).observe(container);
 
     return {
-        update(stats, selectedCourse) {
+        update(stats, selection = new Map()) {
             currentStats = stats;
-            currentSelection = selectedCourse;
+            currentSelection = selection;
             render();
         },
         medianVolume: () => d3.median(currentStats, stat => stat.enrolled) || 0,

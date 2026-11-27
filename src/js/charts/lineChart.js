@@ -1,7 +1,6 @@
 import { tooltip, escapeHtml, formatPercent } from "./tooltip.js";
 
 const MARGIN = { top: 12, right: 24, bottom: 32, left: 48 };
-const COURSE_COLOR = "#2563EB";
 const DEGREE_COLOR = "#102A43";
 
 // logic for the line chart is in src/js/metrics.js, this file is only for rendering
@@ -11,18 +10,20 @@ export function createLineChart(container) {
     const gridGroup = svg.append("g").attr("class", "grid");
     const xAxisGroup = svg.append("g").attr("class", "axis");
     const yAxisGroup = svg.append("g").attr("class", "axis");
-    const degreeGroup = svg.append("g");
-    const courseGroup = svg.append("g");
+    const seriesGroup = svg.append("g");
     const crosshair = svg.append("line").attr("class", "crosshair").style("display", "none");
     const focusGroup = svg.append("g").attr("pointer-events", "none");
     const overlay = svg.append("rect").attr("fill", "transparent");
 
     let current = null;
 
+    // the average is drawn first so the course lines sit on top of it
     function seriesList() {
-        const list = [{ key: "degree", color: DEGREE_COLOR, dashed: !!current.course, ...current.degree }];
-        if (current.course) list.push({ key: "course", color: COURSE_COLOR, dashed: false, ...current.course });
-        return list;
+        const courses = current.courses ?? [];
+        return [
+            { key: "__average", color: DEGREE_COLOR, dashed: courses.length > 0, ...current.degree },
+            ...courses.map(c => ({ key: c.label, dashed: false, ...c })),
+        ];
     }
 
     function render() {
@@ -48,27 +49,22 @@ export function createLineChart(container) {
             .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
 
         const line = d3.line().defined(d => d.passRate !== null).x(d => x(d.year)).y(d => y(d.passRate));
-        const drawSeries = (group, series) => {
-            const items = series ? [series] : [];
-            group.selectAll("g.series").data(items, d => d.key).join(
-                enter => {
-                    const g = enter.append("g").attr("class", "series");
-                    g.append("path").attr("class", "series-line").attr("fill", "none").attr("stroke-width", 2.5);
-                    return g;
-                },
-                update => update,
-                exit => exit.remove(),
-            ).each(function (d) {
-                const g = d3.select(this);
-                g.select("path").attr("stroke", d.color)
-                    .attr("stroke-dasharray", d.dashed ? "6 4" : null)
-                    .transition(t).attr("d", line(d.points));
-                g.selectAll("circle").data(d.points.filter(p => p.passRate !== null), p => p.year).join("circle")
-                    .attr("r", 3.5).attr("fill", d.color).attr("cx", p => x(p.year)).attr("cy", p => y(p.passRate));
-            });
-        };
-        drawSeries(degreeGroup, seriesList()[0]);
-        drawSeries(courseGroup, seriesList()[1] || null);
+        seriesGroup.selectAll("g.series").data(seriesList(), d => d.key).join(
+            enter => {
+                const g = enter.append("g").attr("class", "series");
+                g.append("path").attr("class", "series-line").attr("fill", "none").attr("stroke-width", 2.5);
+                return g;
+            },
+            update => update,
+            exit => exit.remove(),
+        ).each(function (d) {
+            const g = d3.select(this);
+            g.select("path").attr("stroke", d.color)
+                .attr("stroke-dasharray", d.dashed ? "6 4" : null)
+                .transition(t).attr("d", line(d.points));
+            g.selectAll("circle").data(d.points.filter(p => p.passRate !== null), p => p.year).join("circle")
+                .attr("r", 3.5).attr("fill", d.color).attr("cx", p => x(p.year)).attr("cy", p => y(p.passRate));
+        }).order();
 
         overlay.attr("x", MARGIN.left).attr("y", MARGIN.top)
             .attr("width", width - MARGIN.left - MARGIN.right).attr("height", height - MARGIN.top - MARGIN.bottom)

@@ -53,12 +53,23 @@
             <header class="card-header">
                 <h3 id="line-title">Longitudinal Pass Rate</h3>
             </header>
+            <div class="course-picker">
+                <div id="course-search" class="searchable-select">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="course-search-input" placeholder="Search course units to compare..."
+                            autocomplete="off" role="combobox" aria-expanded="false" aria-controls="course-search-options"
+                            aria-label="Search course units to add to the trend chart">
+                    </div>
+                    <div id="course-search-options" class="dropdown-options" role="listbox"></div>
+                </div>
+                <div id="course-chips" class="course-chips"></div>
+            </div>
             <div class="kpi">
                 <span id="kpi-value" class="kpi-value">-</span>
                 <span id="kpi-label" class="kpi-label"></span>
             </div>
             <div id="line-chart" class="chart-body"></div>
-            <div id="trend-callout" class="callout">Select a course bubble to compare its historical trend against the degree average.</div>
+            <div id="trend-callout" class="callout">Search or click course bubbles to compare their historical trends against the degree average.</div>
         </article>
     </div>
 </section>
