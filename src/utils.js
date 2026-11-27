@@ -21,14 +21,29 @@ buttonSidebar.addEventListener("click", () => {
     sidebar.classList.toggle("active", showSideBar);
 });
 
-async function loadPage(page) {
-    const response = await fetch(`pages/${page}.html`);
+// url hash -> page file and its init (home has no charts)
+const ROUTES = {
+    "": { page: "home", title: "Home", init: null },
+    "home": { page: "home", title: "Home", init: null },
+    "degree-management": { page: "degree_management", title: "Curricular Bottlenecks", init: initDegreeManagement },
+    "quality-retention": { page: "quality_retention", title: "Institutional & Equity", init: initQualityRetention },
+    "course-regence": { page: "course_regence", title: "Exam Diagnostics", init: initCourseRegence },
+};
+
+let latestNavigation = 0;
+
+async function loadPage(route) {
+    const navigation = ++latestNavigation;
+    const response = await fetch(`pages/${route.page}.html`);
 
     if (!response.ok) {
-        throw new Error(`Failed to load ${page}`);
+        throw new Error(`Failed to load ${route.page}`);
     }
 
     const html = await response.text();
+
+    // a newer navigation started while this one was loading
+    if (navigation !== latestNavigation) return;
 
     if (cleanupPage) {
         cleanupPage();
@@ -36,32 +51,42 @@ async function loadPage(page) {
     }
 
     document.getElementById("page-content").innerHTML = html;
-
-    if (page === "degree_management") {
-        cleanupPage = initDegreeManagement();
-    } else if (page === "quality_retention") {
-        cleanupPage = initQualityRetention();
-    } else if (page === "course_regence") {
-        cleanupPage = initCourseRegence();
-    }
+    cleanupPage = route.init ? route.init() : null;
+    // the landing page is full screen, without top bar or sidebar
+    document.body.classList.toggle("landing", route.page === "home");
+    closeSidebar();
+    document.title = `${route.title} | GRADES UA`;
+    window.scrollTo(0, 0);
 
     pageButtons.forEach(button => {
         button.classList.toggle(
             "selected",
-            button.dataset.page === page
+            button.dataset.page === route.page
         );
     });
 }
 
-loadPage("degree_management");
+function routeFromHash() {
+    const slug = location.hash.replace(/^#\/?/, "");
 
-pageButtons.forEach(button => {
-    button.addEventListener("click", () => {
-        loadPage(button.dataset.page);
+    // unknown links fall back to the home page
+    if (!(slug in ROUTES)) {
+        history.replaceState(null, "", "#/home");
+        return ROUTES[""];
+    }
 
-        closeSidebar();
-    });
+    return ROUTES[slug];
+}
+
+window.addEventListener("hashchange", () => {
+    loadPage(routeFromHash());
+    closeSidebar();
 });
+
+// the hash does not change when clicking the current page, so close the sidebar here too
+pageButtons.forEach(button => button.addEventListener("click", closeSidebar));
+
+loadPage(routeFromHash());
 
 const pageContent = document.getElementById("page-content");
 
