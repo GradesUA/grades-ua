@@ -82,9 +82,9 @@ export function computeOverall(rows, scope = "all") {
 
 
 // quality & retention
-
-export function computeSankeyFlow(rows) {
-    const enrolments = buildEnrolments(rows);
+export function computeSankeyFlow(rows, group = null) {
+    const all = buildEnrolments(rows);
+    const enrolments = group ? all.filter(e => (e[group.field] || "Unknown") === group.label) : all;
     if (enrolments.length === 0) return { nodes: [], links: [] };
 
     let assessed = 0, neverAssessed = 0, passNormal = 0, notNormal = 0;

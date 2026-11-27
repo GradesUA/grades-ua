@@ -22,16 +22,25 @@ export function initQualityRetention() {
         sankeyBox: $("sankey-chart"),
         divergingBox: $("diverging-chart"),
         divergingFooter: $("diverging-footer"),
+        sankeyBadge: $("sankey-badge"),
+        sankeyFooter: $("sankey-footer"),
     };
 
     const store = createStore({
         department: DEFAULT_DEPARTMENT,
         year: "",
         metric: DEFAULT_METRIC,
+        selectedGroup: null,
     });
 
     const sankey = createSankeyChart(elements.sankeyBox);
-    const diverging = createDivergingBarChart(elements.divergingBox);
+    // clicking a group bar narrows the outcome flow to that group's enrolments
+    const diverging = createDivergingBarChart(elements.divergingBox, {
+        onSelect: label => {
+            store.set({ selectedGroup: label });
+            refresh();
+        },
+    });
 
     let departmentRows = [];
     let latestRequest = 0;
@@ -70,7 +79,7 @@ export function initQualityRetention() {
             elements.department.value = departmentId;
             const year = populateYears(keepFilters ? store.get().year : "");
 
-            store.set({ department: departmentId, year });
+            store.set({ department: departmentId, year, selectedGroup: null });
             refresh();
         } catch (error) {
             if (requestId !== latestRequest) return;
@@ -88,11 +97,25 @@ export function initQualityRetention() {
         const rows = filteredRows();
         const { metric } = store.get();
 
-        const flowData = computeSankeyFlow(rows);
+        const equityData = computeDivergingEquity(rows, metric);
+        // a group can disappear when the year changes
+        let { selectedGroup } = store.get();
+        if (selectedGroup && !equityData.some(d => d.label === selectedGroup)) {
+            selectedGroup = null;
+            store.set({ selectedGroup });
+        }
+        diverging.update(equityData, selectedGroup);
+
+        const flowData = computeSankeyFlow(rows, selectedGroup ? { field: metric, label: selectedGroup } : null);
         sankey.update(flowData);
 
-        const equityData = computeDivergingEquity(rows, metric);
-        diverging.update(equityData);
+        const shown = d3.sum(flowData.links.filter(l => l.source === 0), l => l.value);
+        const all = d3.sum(equityData, d => d.total);
+        elements.sankeyBadge.textContent = selectedGroup ? selectedGroup.toUpperCase() : "ALL ENROLMENTS";
+        elements.sankeyBadge.title = selectedGroup ?? "";
+        elements.sankeyFooter.textContent = selectedGroup
+            ? `${shown} of ${all} enrolments (${selectedGroup}) · click the group again to show everyone`
+            : `${all} enrolments · click a group in the equity chart to see its flow`;
 
         if (elements.divergingFooter) {
             const metricLabel = METRIC_OPTIONS.find(m => m.value === metric)?.label ?? metric;
@@ -111,13 +134,13 @@ export function initQualityRetention() {
     });
 
     elements.metric.addEventListener("change", () => {
-        store.set({ metric: elements.metric.value });
+        store.set({ metric: elements.metric.value, selectedGroup: null });
         refresh();
     });
 
     elements.reset.addEventListener("click", () => {
         setOptions(elements.metric, METRIC_OPTIONS, DEFAULT_METRIC);
-        store.set({ metric: DEFAULT_METRIC });
+        store.set({ metric: DEFAULT_METRIC, selectedGroup: null });
         changeDepartment(DEFAULT_DEPARTMENT, { keepFilters: false });
     });
 
