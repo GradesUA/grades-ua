@@ -115,7 +115,7 @@ export function initDegreeManagement() {
         const median = d3.median(stats, s => s.enrolled) ?? 0;
         const critical = stats.filter(s => s.failRate >= 0.5 && s.enrolled >= median).length;
         elements.courseBadge.textContent = `${stats.length} COURSE UNITS`;
-        elements.scatterFooter.textContent = `${stats.length} course units · ${critical} critical · median volume ${Math.round(median)} students · units with fewer than ${MIN_ENROLLED} enrolments hidden`;
+        elements.scatterFooter.textContent = `${stats.length} course units · ${critical} critical · median volume ${Math.round(median)} enrolments · units with fewer than ${MIN_ENROLLED} enrolments hidden`;
         scatter.update(stats, state.selectedCourse);
 
         renderTrend(rows, stats, state);

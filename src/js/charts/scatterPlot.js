@@ -7,7 +7,7 @@ const MAX_LABELS = 8;
 const LABEL_MAX_CHARS = 28;
 const CHAR_WIDTH = 5.8;
 
-// bubble chart of course units, with failure rate on the y-axis and total enrolled students on the x-axis
+// bubble chart of course units, with failure rate on the y-axis and enrolments on the x-axis
 export function createScatterPlot(container, { onSelect }) {
     const root = d3.select(container);
     const svg = root.append("svg").attr("class", "chart-svg");
@@ -18,7 +18,7 @@ export function createScatterPlot(container, { onSelect }) {
     const gridGroup = svg.append("g").attr("class", "grid");
     const medianLine = svg.append("line").attr("class", "guide-line");
     const thresholdLine = svg.append("line").attr("class", "guide-line");
-    const xTitle = svg.append("text").attr("class", "axis-title").text("Total enrolled students");
+    const xTitle = svg.append("text").attr("class", "axis-title").text("Enrolments (student-years)");
     const yTitle = svg.append("text").attr("class", "axis-title").attr("text-anchor", "middle").text("Failure rate");
     const pointsGroup = svg.append("g");
     const labelsGroup = svg.append("g").attr("pointer-events", "none");
@@ -89,7 +89,7 @@ export function createScatterPlot(container, { onSelect }) {
                 `<strong>${escapeHtml(d.course)}</strong>
                  <div>Failure rate: <b>${formatPercent(d.failRate)}</b></div>
                  <div>Pass rate: <b>${formatPercent(d.passRate)}</b></div>
-                 <div>Enrolled students: <b>${d.enrolled}</b></div>`, event))
+                 <div>Enrolments: <b>${d.enrolled}</b></div>`, event))
             .on("mousemove", event => tooltip.move(event))
             .on("mouseleave", () => tooltip.hide())
             .each(function (d) {
