@@ -138,7 +138,7 @@ P_RESIT = 0.88               # chance a failed student enrols in Recurso
 P_RESIT_ATTEND = 0.70
 P_RESIT_ATTEND_AFTER_ABSENCE = 0.25
 P_IMPROVE = 0.06             # chance a passed student attempts Melhoria
-P_EXTRAORDINARY = 0.20       # chance a finalist retaking a course uses Dezembro
+P_EXTRAORDINARY = 0.30       # chance a finalist failing Normal and Recurso sits Dezembro
 P_RETAKE = 0.80              # chance a failed course is retaken next year
 P_DROPOUT = 0.06             # yearly dropout chance, grows with failures
 
@@ -206,11 +206,7 @@ class Simulation:
                 + trend * (year - 2017) + YEAR_EFFECT.get(year, 0) + grade_shift - (0.5 if is_retake else 0))
         attendance = BASE_ATTENDANCE + 0.7 * student["ability"] - 0.3 * difficulty + attend_shift - (0.8 if is_retake else 0)
 
-        attempts = []
-        if is_retake and is_finalist and rng.random() < P_EXTRAORDINARY:
-            attempts.append(("EXTRAORDINÁRIA", "Dezembro", *self.exam(mean - 0.5, attendance)))
-        if not any(nota >= 10 for *_, nota, _ in attempts):
-            attempts.append((f"{semester}º SEMESTRE", "Normal", *self.exam(mean, attendance)))
+        attempts = [(f"{semester}º SEMESTRE", "Normal", *self.exam(mean, attendance))]
         passed = attempts[-1][2] >= 10
         if not passed and rng.random() < P_RESIT:
             # students absent from Normal rarely show up for Recurso
@@ -219,6 +215,9 @@ class Simulation:
                 attempts.append(("RECURSO", "Recurso", clamp_grade(rng.gauss(mean - 0.8, GRADE_SD)), 1))
             else:
                 attempts.append(("RECURSO", "Recurso", 0, 0))
+            # dezembro comes after failing both Normal and Recurso
+            if attempts[-1][2] < 10 and is_finalist and rng.random() < P_EXTRAORDINARY:
+                attempts.append(("EXTRAORDINÁRIA", "Dezembro", *self.exam(mean - 0.5, attendance - 0.5)))
         elif passed and rng.random() < P_IMPROVE:
             if rng.random() < 0.95:
                 attempts.append(("RECURSO", "Melhoria", clamp_grade(attempts[-1][2] + rng.gauss(1.2, 2.2)), 1))
