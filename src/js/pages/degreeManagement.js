@@ -135,8 +135,6 @@ export function initDegreeManagement() {
         }
     }
 
-    // Rendering
-
     function filteredRows() {
         const { degree, cycle, yearFrom, yearTo } = store.get();
         return departmentRows.filter(r => (!degree || r.degree === degree)
@@ -207,8 +205,6 @@ export function initDegreeManagement() {
             .on("mouseenter", (_, d) => setHover(d.course))
             .on("mouseleave", () => setHover(null));
     }
-
-    // Course search
 
     function renderChips(selected) {
         const chips = d3.select(elements.chips).selectAll("span.course-chip").data(selected, d => d.course).join(enter => {
@@ -292,8 +288,6 @@ export function initDegreeManagement() {
             elements.searchInput.blur();
         }
     });
-
-    // Events
 
     elements.department.addEventListener("change", () => changeDepartment(elements.department.value, { keepRange: true }));
 

@@ -1,7 +1,8 @@
 import { tooltip, escapeHtml } from "./tooltip.js";
 
 const MARGIN = { right: 36, bottom: 28, left: 145 };
-const PALETTE = ["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4", "#64748B"];
+const RAMP = d3.interpolateLab("#84b9f3", "#0e3d7e");
+const FADED = 0.25;
 
 export function createStackedBarChart(container) {
     let current = { data: [], keys: [] };
@@ -60,7 +61,12 @@ export function createStackedBarChart(container) {
 
         const color = d3.scaleOrdinal()
             .domain(keys)
-            .range(PALETTE);
+            .range(keys.map((_, i) => RAMP(keys.length === 1 ? 0.6 : i / (keys.length - 1))));
+        const yearTotals = Object.fromEntries(keys.map(k => [k, d3.sum(data, d => d[k])]));
+        const highlightYear = key => {
+            g.selectAll("rect.segment").attr("opacity", s => key === null || s.key === key ? 1 : FADED);
+            legend.selectAll("g.legend-item").attr("opacity", k => key === null || k === key ? 1 : FADED);
+        };
 
         const legend = svg.append("g")
             .attr("transform", `translate(${legendStartX}, 10)`);
@@ -71,6 +77,8 @@ export function createStackedBarChart(container) {
             const labelText = `${k}/${+k + 1}`;
 
             const item = legend.append("g")
+                .datum(k)
+                .attr("class", "legend-item")
                 .attr("transform", `translate(${col * itemWidth}, ${row * 18})`);
 
             item.append("rect")
@@ -127,6 +135,7 @@ export function createStackedBarChart(container) {
         layers.selectAll("rect")
             .data(layer => layer.map(seg => ({ ...seg, key: layer.key })))
             .join("rect")
+            .attr("class", "segment")
             .attr("x", d => x(d[0]))
             .attr("y", d => y(d.data.label) + yOffset)
             .attr("width", d => Math.max(0, x(d[1]) - x(d[0])))
@@ -137,23 +146,22 @@ export function createStackedBarChart(container) {
             .on("mouseenter", (event, d) => {
                 const yearLabel = `${d.key}/${+d.key + 1}`;
                 const segValue = d.data[d.key];
-                const sharePct = d.data.total > 0 ? ((segValue / d.data.total) * 100).toFixed(1) : 0;
+                const yearTotal = yearTotals[d.key];
+                const yearShare = yearTotal > 0 ? ((segValue / yearTotal) * 100).toFixed(1) : "0.0";
 
-                const breakdown = keys.length > 1
-                    ? `<hr style="border:0;border-top:1px solid rgba(255,255,255,0.2);margin:4px 0">` +
-                      keys.map(k => `<span class="swatch" style="background:${color(k)}"></span>${k}/${+k + 1}: <b>${d.data[k]}</b>`).join("<br>")
-                    : "";
-
+                highlightYear(d.key);
                 tooltip.show(
-                    `<strong>${escapeHtml(d.data.label)}</strong>
-                    ${yearLabel}: <b>${segValue} students</b>${keys.length > 1 ? ` (${sharePct}%)` : ""}
-                    ${breakdown}
-                    <br><span class="muted">Total in category: ${d.data.total}</span>`,
+                    `<strong>${escapeHtml(d.data.label)} · ${yearLabel}</strong>
+                    <b>${segValue} enrolments</b>, ${yearShare}% of the ${yearTotal} enrolments that year
+                    <br><span class="muted">${escapeHtml(d.data.label)}, all selected years: ${d.data.total}</span>`,
                     event
                 );
             })
             .on("mousemove", event => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide());
+            .on("mouseleave", () => {
+                highlightYear(null);
+                tooltip.hide();
+            });
 
         g.selectAll("text.total-label")
             .data(data)

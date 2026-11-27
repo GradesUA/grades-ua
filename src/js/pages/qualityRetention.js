@@ -123,7 +123,6 @@ export function initQualityRetention() {
         }
     }
 
-    // Events
     elements.department.addEventListener("change", () => {
         changeDepartment(elements.department.value, { keepFilters: true });
     });
@@ -144,7 +143,6 @@ export function initQualityRetention() {
         changeDepartment(DEFAULT_DEPARTMENT, { keepFilters: false });
     });
 
-    // Bootstrap
     setOptions(elements.metric, METRIC_OPTIONS, DEFAULT_METRIC);
 
     loadDepartmentIndex()

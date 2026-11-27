@@ -50,8 +50,6 @@ export function initCourseRegence() {
     let availableYearsForCourse = [];
     let latestRequest = 0;
 
-    // --- Helpers ---
-
     const setOptions = (select, options, value) => {
         d3.select(select)
             .selectAll("option")
@@ -61,8 +59,6 @@ export function initCourseRegence() {
             .text(d => d.label);
         select.value = value;
     };
-
-    // --- 1. Course Searchable Dropdown ---
 
     function renderCourseDropdown(query = "") {
         const cleanQuery = normalizeText(query.trim());
@@ -107,8 +103,6 @@ export function initCourseRegence() {
         store.set({ course: courseName, department: dept, selectedYears: years, selectedDegree: null });
         refresh();
     }
-
-    // --- 2. Secondary Filters ---
 
     function lockSecondaryFilters() {
         setOptions(elements.department, [{ value: "", label: "All departments" }], "");
@@ -182,8 +176,6 @@ export function initCourseRegence() {
         return selectedYears;
     }
 
-    // --- 3. Rendering ---
-
     function refresh() {
         const { course, department, selectedYears, selectedDegree } = store.get();
 
@@ -197,7 +189,6 @@ export function initCourseRegence() {
             return;
         }
 
-        // Linhas da UC filtradas por departamento e anos selecionados
         const scopedRows = allRows.filter(r =>
             r.course === course &&
             (!department || r.departmentId === department) &&
@@ -206,7 +197,6 @@ export function initCourseRegence() {
 
         const degreeEquity = computeDivergingEquity(scopedRows, "degree");
 
-        // Se o curso selecionado deixou de existir nos filtros atuais, limpa a seleção
         if (selectedDegree && !degreeEquity.some(d => d.label === selectedDegree)) {
             store.set({ selectedDegree: null });
             return;
@@ -218,7 +208,6 @@ export function initCourseRegence() {
             : "Click a degree bar to isolate its exam season results on the right.";
         divergingChart.update(degreeEquity, selectedDegree);
 
-        // Gráfico da direita: filtra ainda pelo curso clicado no gráfico da esquerda (se existir)
         const outcomeRows = selectedDegree
             ? scopedRows.filter(r => r.degree === selectedDegree)
             : scopedRows;
@@ -231,8 +220,6 @@ export function initCourseRegence() {
             ? `Showing exam outcomes exclusively for ${selectedDegree}.`
             : `Aggregated exam outcomes across all ${degreeEquity.length} degrees.`;
     }
-
-    // --- 4. Events ---
 
     elements.courseInput.addEventListener("focus", () => {
         renderCourseDropdown(elements.courseInput.value);
@@ -297,12 +284,9 @@ export function initCourseRegence() {
         selectCourse("");
     });
 
-    // Reage ao clique nas barras do gráfico divergente
     const unsubscribe = store.subscribe((_, changed) => {
         if (changed.length === 1 && changed[0] === "selectedDegree") refresh();
     });
-
-    // --- 5. Bootstrap ---
 
     lockSecondaryFilters();
     elements.courseInput.placeholder = "Loading courses...";
@@ -315,7 +299,6 @@ export function initCourseRegence() {
             if (requestId !== latestRequest) return;
             departmentsMap = new Map(index.map(d => [d.id, d.name]));
 
-            // Carrega todos em paralelo, mas atualiza a lista de UCs assim que cada departamento chega
             const deptTasks = index.map(async dept => {
                 const rows = await loadDepartment(dept.id);
                 if (requestId !== latestRequest) return [];

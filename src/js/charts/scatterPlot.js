@@ -76,7 +76,6 @@ export function createScatterPlot(container, { onSelect, onHover = () => {} }) {
         thresholdLine.attr("x1", x.range()[0]).attr("x2", x.range()[1]).attr("y1", y(FAIL_THRESHOLD)).attr("y2", y(FAIL_THRESHOLD));
 
         const hasSelection = currentSelection.size > 0;
-        // draw larger bubbles first so small ones stay clickable
         const sorted = [...currentStats].sort((a, b) => b.enrolled - a.enrolled);
 
         pointsGroup.selectAll("g.point").data(sorted, d => d.course).join(

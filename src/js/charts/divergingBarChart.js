@@ -81,7 +81,6 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
         const yOffset = (y.bandwidth() - barHeight) / 2;
         const centerX = x(0);
 
-        // Cabeçalhos
         g.append("text")
             .attr("x", centerX - 8)
             .attr("y", -10)
@@ -100,7 +99,6 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("fill", COLOR_RIGHT)
             .text("APPROVED →");
 
-        // Linhas guia
         [-50, 50].forEach(tick => {
             g.append("line")
                 .attr("x1", x(tick))
