@@ -42,14 +42,28 @@ export function initDegreeManagement() {
 
     const scatter = createScatterPlot(elements.scatterBox, {
         onSelect: course => toggleCourse(course),
+        onHover: course => setHover(course),
     });
-    const line = createLineChart(elements.lineBox);
+    const line = createLineChart(elements.lineBox, { onHover: course => setHover(course) });
 
     let departments = [];
     let departmentRows = [];
     let latestRequest = 0;
     let currentStats = [];
     let activeOption = -1;
+    let hoveredCourse = null;
+
+    // one hovered course is highlighted in the scatter, the lines, the tags and the callout at once
+    function setHover(course, force = false) {
+        const next = store.get().selectedCourses.some(s => s.course === course) ? course : null;
+        if (next === hoveredCourse && !force) return; // the line chart reports on every mousemove
+        hoveredCourse = next;
+        scatter.highlight(hoveredCourse);
+        line.highlight(hoveredCourse);
+        const dim = d => hoveredCourse !== null && d.course !== hoveredCourse;
+        d3.select(elements.chips).selectAll(".course-chip").classed("dimmed", dim);
+        d3.select(elements.callout).selectAll(".callout-row").classed("dimmed", dim);
+    }
 
     // selection keeps each course's color until it is removed, so survivors never repaint
     function toggleCourse(course) {
@@ -152,6 +166,7 @@ export function initDegreeManagement() {
         renderChips(state.selectedCourses);
         renderOptions();
         renderTrend(rows, stats, state);
+        setHover(hoveredCourse, true);
     }
 
     function renderTrend(rows, stats, state) {
@@ -188,6 +203,9 @@ export function initDegreeManagement() {
                 <strong>${escapeHtml(course)}</strong>: ${formatPercent(stat.failRate)} failure across ${stat.enrolled} enrolments,
                 <b>${Math.abs(delta).toFixed(1)} pts ${delta < 0 ? "below" : "above"}</b> the ${degreeLabel.toLowerCase()}</div>`;
         }).join("") + `<div class="callout-note">${degreeLabel} pass rate: ${formatPercent(overall.passRate)}</div>`;
+        d3.select(elements.callout).selectAll(".callout-row").data(selectedCourses)
+            .on("mouseenter", (_, d) => setHover(d.course))
+            .on("mouseleave", () => setHover(null));
     }
 
     // Course search
@@ -203,6 +221,7 @@ export function initDegreeManagement() {
         });
         chips.select(".swatch").style("background", d => d.color);
         chips.select(".course-chip-label").text(d => d.course).attr("title", d => d.course);
+        chips.on("mouseenter", (_, d) => setHover(d.course)).on("mouseleave", () => setHover(null));
         chips.select(".course-chip-remove").attr("aria-label", d => `Remove ${d.course}`)
             .on("click", (_, d) => toggleCourse(d.course));
         elements.searchInput.disabled = currentStats.length === 0;

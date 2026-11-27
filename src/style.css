@@ -1015,3 +1015,37 @@ body.landing .main {
     overflow: hidden;
     text-overflow: ellipsis;
 }
+
+.is-hovering .point:not(.hovered) .dot {
+    fill-opacity: 0.12;
+}
+
+.is-hovering .point:not(.hovered) .ring {
+    stroke-opacity: 0.25;
+}
+
+.series {
+    transition: opacity 0.15s;
+}
+
+.is-hovering .series:not(.hovered) {
+    opacity: 0.2;
+}
+
+.series.hovered .series-line {
+    stroke-width: 3.5;
+}
+
+.course-chip,
+.callout-row {
+    transition: opacity 0.15s;
+}
+
+.course-chip.dimmed,
+.callout-row.dimmed {
+    opacity: 0.4;
+}
+
+.chart-tooltip .tooltip-hovered {
+    font-weight: 700;
+}

@@ -8,7 +8,7 @@ const LABEL_MAX_CHARS = 28;
 const CHAR_WIDTH = 5.8;
 
 // bubble chart of course units, with failure rate on the y-axis and enrolments on the x-axis
-export function createScatterPlot(container, { onSelect }) {
+export function createScatterPlot(container, { onSelect, onHover = () => {} }) {
     const root = d3.select(container);
     const svg = root.append("svg").attr("class", "chart-svg");
     const quadrant = svg.append("rect").attr("class", "quadrant-critical");
@@ -27,6 +27,13 @@ export function createScatterPlot(container, { onSelect }) {
 
     let currentStats = [];
     let currentSelection = new Map();
+    let currentHover = null;
+
+    function applyHover() {
+        pointsGroup.classed("is-hovering", currentHover !== null);
+        pointsGroup.selectAll("g.point").classed("hovered", d => d.course === currentHover);
+        pointsGroup.selectAll("g.point.hovered").raise();
+    }
 
     function render() {
         tooltip.hide(); // points are re-joined on every render, so mouseleave may never fire
@@ -85,14 +92,17 @@ export function createScatterPlot(container, { onSelect }) {
             exit => exit.transition(t).style("opacity", 0).remove(),
         )
             .on("click", (event, d) => onSelect(d.course))
-            .on("mouseenter", (event, d) => tooltip.show(
-                `<strong>${escapeHtml(d.course)}</strong>
-                 <div>Failure rate: <b>${formatPercent(d.failRate)}</b></div>
-                 <div>Pass rate: <b>${formatPercent(d.passRate)}</b></div>
-                 <div>Enrolments: <b>${d.enrolled}</b></div>
-                 <div class="muted">${currentSelection.has(d.course) ? "Click to remove from" : "Click to add to"} the trend chart</div>`, event))
+            .on("mouseenter", (event, d) => {
+                onHover(currentSelection.has(d.course) ? d.course : null);
+                tooltip.show(
+                    `<strong>${escapeHtml(d.course)}</strong>
+                     <div>Failure rate: <b>${formatPercent(d.failRate)}</b></div>
+                     <div>Pass rate: <b>${formatPercent(d.passRate)}</b></div>
+                     <div>Enrolments: <b>${d.enrolled}</b></div>
+                     <div class="muted">${currentSelection.has(d.course) ? "Click to remove from" : "Click to add to"} the trend chart</div>`, event);
+            })
             .on("mousemove", event => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide())
+            .on("mouseleave", () => { tooltip.hide(); onHover(null); })
             .each(function (d) {
                 const color = currentSelection.get(d.course);
                 const g = d3.select(this);
@@ -107,6 +117,7 @@ export function createScatterPlot(container, { onSelect }) {
             .style("opacity", 1);
 
         pointsGroup.selectAll("g.point.selected").raise();
+        applyHover();
         renderLabels(x, y, radius, medianVolume, width, height);
     }
 
@@ -163,6 +174,10 @@ export function createScatterPlot(container, { onSelect }) {
             currentStats = stats;
             currentSelection = selection;
             render();
+        },
+        highlight(course) {
+            currentHover = course;
+            applyHover();
         },
         medianVolume: () => d3.median(currentStats, stat => stat.enrolled) || 0,
     };
