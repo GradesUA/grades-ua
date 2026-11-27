@@ -6,6 +6,13 @@ const LATER_RANK = 2;
 
 export const PASSED_IN = { NORMAL: "normal", RESIT: "resit", LATER: "later" };
 
+// cumulative pass scopes: which phases count as passed (denominator is always all enrolments)
+export const PASS_SCOPES = {
+    normal: [PASSED_IN.NORMAL],
+    resit: [PASSED_IN.NORMAL, PASSED_IN.RESIT],
+    all: [PASSED_IN.NORMAL, PASSED_IN.RESIT, PASSED_IN.LATER],
+};
+
 function phaseOf(examType) {
     if (examType === NORMAL) return PASSED_IN.NORMAL;
     if (examType === RESIT || examType === IMPROVEMENT) return PASSED_IN.RESIT;
@@ -42,9 +49,10 @@ export function buildEnrolments(rows) {
     return result;
 }
 
-function summarize(enrolments) {
+function summarize(enrolments, scope = "all") {
+    const phases = PASS_SCOPES[scope];
     const enrolled = enrolments.length;
-    const passed = enrolments.reduce((n, e) => n + (e.passed ? 1 : 0), 0);
+    const passed = enrolments.reduce((n, e) => n + (phases.includes(e.passedIn) ? 1 : 0), 0);
     const passRate = enrolled > 0 ? passed / enrolled : null;
     return {
         enrolled,
@@ -56,20 +64,20 @@ function summarize(enrolments) {
 }
 
 // pass/fail statistics for each course in a set of rows
-export function computeCourseStats(rows) {
+export function computeCourseStats(rows, scope = "all") {
     const byCourse = d3.group(buildEnrolments(rows), e => e.course);
-    return Array.from(byCourse, ([course, list]) => ({ course, ...summarize(list) }));
+    return Array.from(byCourse, ([course, list]) => ({ course, ...summarize(list, scope) }));
 }
 
 // yearly pass/fail statistics for a range of academic years
-export function computeYearlySeries(rows, fromYear, toYear) {
+export function computeYearlySeries(rows, fromYear, toYear, scope = "all") {
     const byYear = d3.group(buildEnrolments(rows), e => e.year);
-    return d3.range(fromYear, toYear + 1).map(year => ({ year, ...summarize(byYear.get(year) ?? []) }));
+    return d3.range(fromYear, toYear + 1).map(year => ({ year, ...summarize(byYear.get(year) ?? [], scope) }));
 }
 
 // overall statistics for a set of rows (e.g., all courses in a degree)
-export function computeOverall(rows) {
-    return summarize(buildEnrolments(rows));
+export function computeOverall(rows, scope = "all") {
+    return summarize(buildEnrolments(rows), scope);
 }
 
 
