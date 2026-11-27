@@ -10,13 +10,13 @@
             </div>
 
             <div class="op-container">
-                <label for="filter-degree">Degree / Course</label>
-                <select id="filter-degree"></select>
+                <label for="filter-cycle" title="The dataset has no curricular-year column, so students are grouped by study cycle instead.">Curricular Year (by cycle)</label>
+                <select id="filter-cycle"></select>
             </div>
 
             <div class="op-container">
-                <label for="filter-cycle" title="The dataset has no curricular-year column, so students are grouped by study cycle instead.">Curricular Year (by cycle)</label>
-                <select id="filter-cycle"></select>
+                <label for="filter-degree">Degree</label>
+                <select id="filter-degree"></select>
             </div>
 
             <div class="op-container">
@@ -26,6 +26,11 @@
                     <span class="range-separator">-</span>
                     <select id="filter-year-to" aria-label="To academic year"></select>
                 </div>
+            </div>
+
+            <div class="op-container">
+                <label for="filter-phase" title="Which exam phases count as a pass. The rate always uses all enrolments.">Passed By</label>
+                <select id="filter-phase"></select>
             </div>
 
             <button type="button" id="btn-reset" class="btn-reset"><i class="fi fi-br-rotate-right"></i>Reset view</button>

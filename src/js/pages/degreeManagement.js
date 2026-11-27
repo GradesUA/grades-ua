@@ -10,12 +10,19 @@ const DEFAULT_DEGREE_PATTERN = /^LICENCIATURA EM ENGENHARIA INFORMÁTICA/;
 const MIN_ENROLLED = 5;
 const CALLOUT_HINT = "Select a course bubble to compare its historical trend against the degree average.";
 const CYCLE_LABELS = { L1: "1st cycle (Bachelor)", M2: "2nd cycle (Master)" };
+const DEFAULT_PHASE = "all";
+const PHASE_OPTIONS = [
+    { value: "all", label: "Any period (final result)" },
+    { value: "resit", label: "Normal + Resit" },
+    { value: "normal", label: "Normal only" },
+];
+const PHASE_SHORT = { all: "any period", resit: "normal + resit", normal: "normal only" };
 
 export function initDegreeManagement() {
     const $ = id => document.getElementById(id);
     const elements = {
         department: $("filter-department"), degree: $("filter-degree"), cycle: $("filter-cycle"),
-        yearFrom: $("filter-year-from"), yearTo: $("filter-year-to"), reset: $("btn-reset"),
+        yearFrom: $("filter-year-from"), yearTo: $("filter-year-to"), phase: $("filter-phase"), reset: $("btn-reset"),
         scatterBox: $("scatter-chart"), lineBox: $("line-chart"),
         courseBadge: $("course-count-badge"), scatterFooter: $("scatter-footer"),
         lineTitle: $("line-title"), kpiValue: $("kpi-value"), kpiLabel: $("kpi-label"), callout: $("trend-callout"),
@@ -24,6 +31,7 @@ export function initDegreeManagement() {
 
     const store = createStore({
         department: DEFAULT_DEPARTMENT, degree: "", cycle: "", yearFrom: null, yearTo: null, selectedCourse: null,
+        phase: DEFAULT_PHASE,
     });
 
     const scatter = createScatterPlot(elements.scatterBox, {
@@ -105,7 +113,7 @@ export function initDegreeManagement() {
         if (departmentRows.length === 0) return;
         const state = store.get();
         const rows = filteredRows();
-        const stats = computeCourseStats(rows).filter(s => s.enrolled >= MIN_ENROLLED);
+        const stats = computeCourseStats(rows, state.phase).filter(s => s.enrolled >= MIN_ENROLLED);
 
         if (state.selectedCourse && !stats.some(s => s.course === state.selectedCourse)) {
             store.set({ selectedCourse: null });
@@ -115,20 +123,20 @@ export function initDegreeManagement() {
         const median = d3.median(stats, s => s.enrolled) ?? 0;
         const critical = stats.filter(s => s.failRate >= 0.5 && s.enrolled >= median).length;
         elements.courseBadge.textContent = `${stats.length} COURSE UNITS`;
-        elements.scatterFooter.textContent = `${stats.length} course units · ${critical} critical · median volume ${Math.round(median)} enrolments · units with fewer than ${MIN_ENROLLED} enrolments hidden`;
+        elements.scatterFooter.textContent = `${stats.length} course units · passed by ${PHASE_SHORT[state.phase]} · ${critical} critical · median volume ${Math.round(median)} enrolments · units with fewer than ${MIN_ENROLLED} enrolments hidden`;
         scatter.update(stats, state.selectedCourse);
 
         renderTrend(rows, stats, state);
     }
 
     function renderTrend(rows, stats, state) {
-        const { yearFrom, yearTo, selectedCourse, degree } = state;
+        const { yearFrom, yearTo, selectedCourse, degree, phase } = state;
         const degreeLabel = degree ? "Degree average" : "Department average";
-        const degreePoints = computeYearlySeries(rows, yearFrom, yearTo);
+        const degreePoints = computeYearlySeries(rows, yearFrom, yearTo, phase);
         const coursePoints = selectedCourse
-            ? computeYearlySeries(rows.filter(r => r.course === selectedCourse), yearFrom, yearTo) : null;
+            ? computeYearlySeries(rows.filter(r => r.course === selectedCourse), yearFrom, yearTo, phase) : null;
 
-        elements.lineTitle.textContent = `Longitudinal Pass Rate (${yearFrom}-${yearTo})`;
+        elements.lineTitle.textContent = `Longitudinal Pass Rate (${yearFrom}-${yearTo}, ${PHASE_SHORT[phase]})`;
         line.update({
             fromYear: yearFrom, toYear: yearTo,
             degree: { label: degreeLabel, points: degreePoints },
@@ -141,7 +149,7 @@ export function initDegreeManagement() {
         elements.kpiLabel.textContent = latest
             ? `${selectedCourse ?? degreeLabel} · ${latest.year}` : "No data in the selected range";
 
-        const overall = computeOverall(rows);
+        const overall = computeOverall(rows, phase);
         if (selectedCourse) {
             const stat = stats.find(s => s.course === selectedCourse);
             const delta = (stat.passRate - overall.passRate) * 100;
@@ -182,11 +190,17 @@ export function initDegreeManagement() {
         store.set({ yearFrom: from, yearTo: to });
         refresh();
     }
+    elements.phase.addEventListener("change", () => {
+        store.set({ phase: elements.phase.value });
+        refresh();
+    });
+
     elements.yearFrom.addEventListener("change", () => onYearChange("from"));
     elements.yearTo.addEventListener("change", () => onYearChange("to"));
 
     elements.reset.addEventListener("click", () => {
-        store.set({ selectedCourse: null });
+        setOptions(elements.phase, PHASE_OPTIONS, DEFAULT_PHASE);
+        store.set({ selectedCourse: null, phase: DEFAULT_PHASE });
         changeDepartment(DEFAULT_DEPARTMENT, { keepRange: false });
     });
 
@@ -197,6 +211,7 @@ export function initDegreeManagement() {
 
     // Bootstrap
 
+    setOptions(elements.phase, PHASE_OPTIONS, DEFAULT_PHASE);
     loadDepartmentIndex().then(index => {
         departments = index;
         setOptions(elements.department,
