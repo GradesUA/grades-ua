@@ -1,9 +1,13 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Grades UA Project</title>
+        <title>GRADES UA</title>
+        <script>
+            document.documentElement.dataset.theme = localStorage.getItem("grades-ua-theme")
+                ?? (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+        </script>
         <script type="text/javascript" src="https://d3js.org/d3.v7.min.js"></script>
         <script type="text/javascript" src="https://unpkg.com/d3-sankey@0.12.3/dist/d3-sankey.min.js"></script>
         <link rel="stylesheet" href="style.css">
@@ -11,28 +15,35 @@
     </head>
     <body>
         <section class="top-bar">
-            <button id="btn-sidebar"><i class="fi fi-br-menu-burger"></i></button>
+            <button id="btn-sidebar" data-i18n-aria="nav.menu"><i class="fi fi-br-menu-burger"></i></button>
             <a href="#/home" class="top-bar-text">
                 <h1>GRADES - UA</h1>
-                <h2>Academic Performance Analysis</h2>
+                <h2 data-i18n="app.subtitle"></h2>
             </a>
         </section>
+        <div class="app-settings">
+            <div class="lang-switch" role="group" data-i18n-aria="settings.language">
+                <button type="button" data-lang="pt" lang="pt">PT</button>
+                <button type="button" data-lang="en" lang="en">EN</button>
+            </div>
+            <button type="button" id="btn-theme" class="theme-toggle"><i class="fi"></i></button>
+        </div>
         <section id="page-content" class="main">
-            
+
         </section>
         <aside id="sidebar" class="sidebar">
             <nav>
                 <a href="#/degree-management" data-page="degree_management" class="btn-sidebar">
-                    <h2>DEGREE MANAGEMENT</h2>
-                    <h1>Curricular Bottlenecks</h1>
+                    <h2 data-i18n="nav.dm.eyebrow"></h2>
+                    <h1 data-i18n="nav.dm.title"></h1>
                 </a>
                 <a href="#/quality-retention" data-page="quality_retention" class="btn-sidebar">
-                    <h2>QUALITY & RETENTION</h2>
-                    <h1>Institutional & Equity</h1>
+                    <h2 data-i18n="nav.qr.eyebrow"></h2>
+                    <h1 data-i18n="nav.qr.title"></h1>
                 </a>
                 <a href="#/course-regence" data-page="course_regence" class="btn-sidebar">
-                    <h2>COURSE REGENCE</h2>
-                    <h1>Exam Diagnostics</h1>
+                    <h2 data-i18n="nav.cr.eyebrow"></h2>
+                    <h1 data-i18n="nav.cr.title"></h1>
                 </a>
             </nav>
         </aside>
