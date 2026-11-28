@@ -1,4 +1,7 @@
 import { tooltip, escapeHtml } from "./tooltip.js";
+import { t, formatNumber } from "../i18n.js";
+
+const displayLabel = label => label === "Unknown" ? t("common.unknown") : label;
 
 const MARGIN = { top: 28, right: 24, bottom: 24, left: 310 };
 const COLOR_LEFT = "#e03030";  // Fail / Unassessed
@@ -57,7 +60,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
                 .attr("x", width / 2)
                 .attr("y", height / 2)
                 .attr("text-anchor", "middle")
-                .text("No data available for this selection");
+                .text(t("common.noSelectionData"));
             return;
         }
 
@@ -88,7 +91,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("font-size", "10.5px")
             .attr("font-weight", "700")
             .attr("fill", COLOR_LEFT)
-            .text("← FAIL / UNASSESSED");
+            .text(t("diverging.fail"));
 
         g.append("text")
             .attr("x", centerX + 8)
@@ -97,7 +100,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("font-size", "10.5px")
             .attr("font-weight", "700")
             .attr("fill", COLOR_RIGHT)
-            .text("APPROVED →");
+            .text(t("diverging.pass"));
 
         [-50, 50].forEach(tick => {
             g.append("line")
@@ -105,7 +108,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
                 .attr("x2", x(tick))
                 .attr("y1", 0)
                 .attr("y2", innerH)
-                .attr("stroke", "#EEF2F6")
+                .style("stroke", "var(--grid)")
                 .attr("stroke-dasharray", "3 3");
         });
 
@@ -124,8 +127,8 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("width", width - 4)
             .attr("height", y.bandwidth() - 4)
             .attr("rx", 6)
-            .attr("fill", "#EFF6FF")
-            .attr("stroke", "#93C5FD");
+            .style("fill", "var(--accent-soft)")
+            .style("stroke", "var(--accent-border)");
 
         // caption
         const maxLabelWidth = leftMargin - 22;
@@ -136,11 +139,11 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("text-anchor", "end")
             .attr("font-size", "10.5px")
             .attr("font-weight", d => d.label === selectedLabel ? "700" : "600")
-            .attr("fill", "#102A43")
+            .style("fill", "var(--blue)")
             .each(function(d) {
                 const textEl = d3.select(this);
-                const suffix = ` (${d.total})`;
-                let label = d.label;
+                const suffix = ` (${formatNumber(d.total)})`;
+                let label = displayLabel(d.label);
 
                 textEl.text(label + suffix);
                 while (this.getComputedTextLength() > maxLabelWidth && label.length > 3) {
@@ -196,7 +199,7 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             .attr("x2", centerX)
             .attr("y1", -4)
             .attr("y2", innerH)
-            .attr("stroke", "#102A43")
+            .style("stroke", "var(--blue)")
             .attr("stroke-width", 2);
 
         // tooltip
@@ -213,10 +216,10 @@ export function createDivergingBarChart(container, { onSelect } = {}) {
             })
             .on("mouseenter", (event, d) => {
                 tooltip.show(
-                    `<strong>${escapeHtml(d.label)}</strong>
-                    Approved: <b>${d.passPct.toFixed(1)}%</b> (${d.passed})<br>
-                    Fail / Unassessed: <b>${d.failPct.toFixed(1)}%</b> (${d.failed})<br>
-                    <span class="muted">Total enrolments: ${d.total}${onSelect ? " · Click to filter" : ""}</span>`,
+                    `<strong>${escapeHtml(displayLabel(d.label))}</strong>
+                    ${t("diverging.approved")}: <b>${formatNumber(d.passPct, 1)}%</b> (${formatNumber(d.passed)})<br>
+                    ${t("diverging.failed")}: <b>${formatNumber(d.failPct, 1)}%</b> (${formatNumber(d.failed)})<br>
+                    <span class="muted">${t("diverging.total")}: ${formatNumber(d.total)}${onSelect ? ` · ${t("diverging.clickToFilter")}` : ""}</span>`,
                     event
                 );
             })

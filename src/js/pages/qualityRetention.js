@@ -3,14 +3,15 @@ import { createStore } from "../state.js";
 import { computeSankeyFlow, computeDivergingEquity } from "../metrics.js";
 import { createSankeyChart } from "../charts/sankeyChart.js";
 import { createDivergingBarChart } from "../charts/divergingBarChart.js";
+import { t } from "../i18n.js";
+import { onSettingsChange } from "../settings.js";
 
 const DEFAULT_DEPARTMENT = "deti";
 const DEFAULT_METRIC = "regime";
 
-const METRIC_OPTIONS = [
-    { value: "regime", label: "Study Regime" },
-    { value: "accessType", label: "Access Type" },
-];
+const METRICS = ["regime", "accessType"];
+const metricOptions = () => METRICS.map(value => ({ value, label: t(`qr.metric.${value}`) }));
+const groupLabel = label => label === "Unknown" ? t("common.unknown") : label;
 
 export function initQualityRetention() {
     const $ = id => document.getElementById(id);
@@ -60,7 +61,7 @@ export function initQualityRetention() {
             .sort(d3.descending);
 
         const options = [
-            { value: "", label: "All academic years" },
+            { value: "", label: t("common.allYears") },
             ...years.map(y => ({ value: String(y), label: `${y}/${y + 1}` })),
         ];
 
@@ -111,15 +112,14 @@ export function initQualityRetention() {
 
         const shown = d3.sum(flowData.links.filter(l => l.source === 0), l => l.value);
         const all = d3.sum(equityData, d => d.total);
-        elements.sankeyBadge.textContent = selectedGroup ? selectedGroup.toUpperCase() : "ALL ENROLMENTS";
-        elements.sankeyBadge.title = selectedGroup ?? "";
+        elements.sankeyBadge.textContent = selectedGroup ? groupLabel(selectedGroup).toUpperCase() : t("qr.allEnrolments");
+        elements.sankeyBadge.title = selectedGroup ? groupLabel(selectedGroup) : "";
         elements.sankeyFooter.textContent = selectedGroup
-            ? `${shown} of ${all} enrolments (${selectedGroup}) · click the group again to show everyone`
-            : `${all} enrolments · click a group in the equity chart to see its flow`;
+            ? t("qr.footerGroup", { shown, all, group: groupLabel(selectedGroup) })
+            : t("qr.footerAll", { all });
 
         if (elements.divergingFooter) {
-            const metricLabel = METRIC_OPTIONS.find(m => m.value === metric)?.label ?? metric;
-            elements.divergingFooter.textContent = `Comparing ${equityData.length} groups by ${metricLabel}`;
+            elements.divergingFooter.textContent = t("qr.divergingFooter", { n: equityData.length, metric: t(`qr.metric.${metric}`) });
         }
     }
 
@@ -138,12 +138,21 @@ export function initQualityRetention() {
     });
 
     elements.reset.addEventListener("click", () => {
-        setOptions(elements.metric, METRIC_OPTIONS, DEFAULT_METRIC);
+        setOptions(elements.metric, metricOptions(), DEFAULT_METRIC);
         store.set({ metric: DEFAULT_METRIC, selectedGroup: null });
         changeDepartment(DEFAULT_DEPARTMENT, { keepFilters: false });
     });
 
-    setOptions(elements.metric, METRIC_OPTIONS, DEFAULT_METRIC);
+    // option labels and chart strings follow the language, chart colors the theme
+    const offSettings = onSettingsChange(() => {
+        setOptions(elements.metric, metricOptions(), store.get().metric);
+        if (departmentRows.length === 0) return;
+        populateYears(store.get().year);
+        refresh();
+    });
+
+    elements.sankeyBadge.textContent = t("qr.allEnrolments");
+    setOptions(elements.metric, metricOptions(), DEFAULT_METRIC);
 
     loadDepartmentIndex()
         .then(index => {
@@ -158,6 +167,7 @@ export function initQualityRetention() {
 
     return () => {
         latestRequest++;
+        offSettings();
         diverging.destroy();
     };
 }

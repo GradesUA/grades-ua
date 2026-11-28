@@ -3,24 +3,24 @@ import { createStore } from "../state.js";
 import { computeCourseStats, computeYearlySeries, computeOverall } from "../metrics.js";
 import { createScatterPlot } from "../charts/scatterPlot.js";
 import { createLineChart } from "../charts/lineChart.js";
-import { escapeHtml, formatPercent } from "../charts/tooltip.js";
+import { escapeHtml } from "../charts/tooltip.js";
+import { t, formatNumber, formatPercent } from "../i18n.js";
+import { onSettingsChange } from "../settings.js";
 
 const DEFAULT_DEPARTMENT = "deti";
 const DEFAULT_DEGREE_PATTERN = /^LICENCIATURA EM ENGENHARIA INFORMÁTICA/;
 const MIN_ENROLLED = 5;
-const CALLOUT_HINT = "Search or click course bubbles to compare their historical trends against the degree average.";
-const SERIES_COLORS = ["#257de0", "#f47230", "#00b894", "#f2a600", "#ee7fac"];
+// css variables, so each course keeps its slot and the color follows the theme
+const SERIES_COLORS = ["var(--series-1)", "var(--series-2)", "var(--series-3)", "var(--series-4)", "var(--series-5)"];
 const MAX_COURSES = SERIES_COLORS.length;
 const NO_COURSES = [];
 const fold = text => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-const CYCLE_LABELS = { L1: "1st cycle (Bachelor)", M2: "2nd cycle (Master)" };
+const KNOWN_CYCLES = ["L1", "M2"];
+const cycleLabel = cycle => KNOWN_CYCLES.includes(cycle) ? t(`dm.cycle.${cycle}`) : cycle;
 const DEFAULT_PHASE = "all";
-const PHASE_OPTIONS = [
-    { value: "all", label: "Any period (final result)" },
-    { value: "resit", label: "Normal + Resit" },
-    { value: "normal", label: "Normal only" },
-];
-const PHASE_SHORT = { all: "any period", resit: "normal + resit", normal: "normal only" };
+const PHASES = ["all", "resit", "normal"];
+const phaseOptions = () => PHASES.map(value => ({ value, label: t(`dm.phase.${value}`) }));
+const phaseShort = phase => t(`dm.phaseShort.${phase}`);
 
 export function initDegreeManagement() {
     const $ = id => document.getElementById(id);
@@ -89,7 +89,7 @@ export function initDegreeManagement() {
         const { cycle } = store.get();
         const counts = d3.rollup(departmentRows.filter(r => !cycle || r.cycle === cycle), v => v.length, r => r.degree);
         const degrees = Array.from(counts.keys()).sort(d3.ascending);
-        const options = [{ value: "", label: "All degrees" }, ...degrees.map(d => ({ value: d, label: d }))];
+        const options = [{ value: "", label: t("dm.allDegrees") }, ...degrees.map(d => ({ value: d, label: d }))];
         const fallback = degrees.find(d => DEFAULT_DEGREE_PATTERN.test(d))
             ?? d3.greatest(degrees, d => counts.get(d)) ?? "";
         const degree = degrees.includes(preferred) ? preferred : fallback;
@@ -97,10 +97,10 @@ export function initDegreeManagement() {
         return degree;
     }
 
-    function populateCycles() {
+    function populateCycles(preferred = "") {
         const cycles = Array.from(new Set(departmentRows.map(r => r.cycle))).sort(d3.ascending);
-        setOptions(elements.cycle, [{ value: "", label: "All cycles" },
-            ...cycles.map(c => ({ value: c, label: CYCLE_LABELS[c] ?? c }))], "");
+        setOptions(elements.cycle, [{ value: "", label: t("dm.allCycles") },
+            ...cycles.map(c => ({ value: c, label: cycleLabel(c) }))], cycles.includes(preferred) ? preferred : "");
     }
 
     function populateYears(preferredFrom, preferredTo) {
@@ -115,7 +115,7 @@ export function initDegreeManagement() {
 
     async function changeDepartment(departmentId, { keepRange = true } = {}) {
         const requestId = ++latestRequest;
-        elements.scatterStatus.textContent = "Loading department data…";
+        elements.scatterStatus.textContent = t("dm.loadingDepartment");
         elements.scatterStatus.hidden = false;
         try {
             const rows = await loadDepartment(departmentId);
@@ -131,7 +131,7 @@ export function initDegreeManagement() {
         } catch (error) {
             if (requestId !== latestRequest) return;
             console.error(error);
-            elements.scatterStatus.textContent = "Could not load this department's data. Is the dataset in data/departments/?";
+            elements.scatterStatus.textContent = t("dm.loadError");
         }
     }
 
@@ -157,8 +157,10 @@ export function initDegreeManagement() {
 
         const median = d3.median(stats, s => s.enrolled) ?? 0;
         const critical = stats.filter(s => s.failRate >= 0.5 && s.enrolled >= median).length;
-        elements.courseBadge.textContent = `${stats.length} COURSE UNITS`;
-        elements.scatterFooter.textContent = `${stats.length} course units · passed by ${PHASE_SHORT[state.phase]} · ${critical} critical · median volume ${Math.round(median)} enrolments · units with fewer than ${MIN_ENROLLED} enrolments hidden`;
+        elements.courseBadge.textContent = t("dm.badge", { n: stats.length });
+        elements.scatterFooter.textContent = t("dm.footer", {
+            n: stats.length, phase: phaseShort(state.phase), critical, median: Math.round(median), min: MIN_ENROLLED,
+        });
         scatter.update(stats, new Map(state.selectedCourses.map(s => [s.course, s.color])));
 
         renderChips(state.selectedCourses);
@@ -169,14 +171,14 @@ export function initDegreeManagement() {
 
     function renderTrend(rows, stats, state) {
         const { yearFrom, yearTo, selectedCourses, degree, phase } = state;
-        const degreeLabel = degree ? "Degree average" : "Department average";
+        const degreeLabel = t(degree ? "dm.degreeAverage" : "dm.departmentAverage");
         const degreePoints = computeYearlySeries(rows, yearFrom, yearTo, phase);
         const courses = selectedCourses.map(({ course, color }) => ({
             label: course, color,
             points: computeYearlySeries(rows.filter(r => r.course === course), yearFrom, yearTo, phase),
         }));
 
-        elements.lineTitle.textContent = `Longitudinal Pass Rate (${yearFrom}-${yearTo}, ${PHASE_SHORT[phase]})`;
+        elements.lineTitle.textContent = t("dm.lineTitleRange", { from: String(yearFrom), to: String(yearTo), phase: phaseShort(phase) });
         line.update({ fromYear: yearFrom, toYear: yearTo, degree: { label: degreeLabel, points: degreePoints }, courses });
 
         // kpi follows the most recently added course, or the average when nothing is selected
@@ -185,22 +187,26 @@ export function initDegreeManagement() {
         const latest = [...shown].reverse().find(p => p.passRate !== null);
         elements.kpiValue.textContent = latest ? `${Math.round(latest.passRate * 100)}%` : "-";
         elements.kpiLabel.textContent = latest
-            ? `${focus?.label ?? degreeLabel} · ${latest.year}` : "No data in the selected range";
+            ? `${focus?.label ?? degreeLabel} · ${latest.year}` : t("dm.noRange");
 
         const overall = computeOverall(rows, phase);
         if (courses.length === 0) {
             elements.callout.className = "callout";
-            elements.callout.textContent = CALLOUT_HINT;
+            elements.callout.textContent = t("dm.hint");
             return;
         }
         elements.callout.className = "callout active";
         elements.callout.innerHTML = selectedCourses.map(({ course, color }) => {
             const stat = stats.find(s => s.course === course);
             const delta = (stat.passRate - overall.passRate) * 100;
-            return `<div class="callout-row"><span class="swatch" style="background:${color}"></span>
-                <strong>${escapeHtml(course)}</strong>: ${formatPercent(stat.failRate)} failure across ${stat.enrolled} enrolments,
-                <b>${Math.abs(delta).toFixed(1)} pts ${delta < 0 ? "below" : "above"}</b> the ${degreeLabel.toLowerCase()}</div>`;
-        }).join("") + `<div class="callout-note">${degreeLabel} pass rate: ${formatPercent(overall.passRate)}</div>`;
+            return `<div class="callout-row"><span class="swatch" style="background:${color}"></span>${t("dm.calloutRow", {
+                course: `<strong>${escapeHtml(course)}</strong>`, fail: formatPercent(stat.failRate), n: stat.enrolled,
+                delta: formatNumber(Math.abs(delta), 1), direction: t(delta < 0 ? "dm.below" : "dm.above"),
+                average: degreeLabel.toLowerCase(),
+            })}</div>`;
+        }).join("") + `<div class="callout-note">${t("dm.averageNote", {
+            average: degreeLabel, averageLower: degreeLabel.toLowerCase(), rate: formatPercent(overall.passRate),
+        })}</div>`;
         d3.select(elements.callout).selectAll(".callout-row").data(selectedCourses)
             .on("mouseenter", (_, d) => setHover(d.course))
             .on("mouseleave", () => setHover(null));
@@ -218,7 +224,7 @@ export function initDegreeManagement() {
         chips.select(".swatch").style("background", d => d.color);
         chips.select(".course-chip-label").text(d => d.course).attr("title", d => d.course);
         chips.on("mouseenter", (_, d) => setHover(d.course)).on("mouseleave", () => setHover(null));
-        chips.select(".course-chip-remove").attr("aria-label", d => `Remove ${d.course}`)
+        chips.select(".course-chip-remove").attr("aria-label", d => t("dm.removeCourse", { course: d.course }))
             .on("click", (_, d) => toggleCourse(d.course));
         elements.searchInput.disabled = currentStats.length === 0;
     }
@@ -239,9 +245,9 @@ export function initDegreeManagement() {
         activeOption = Math.min(activeOption, matches.length - 1);
 
         const box = d3.select(elements.searchOptions);
-        box.selectAll("div.course-empty").data(matches.length ? [] : ["No course units match"]).join("div")
+        box.selectAll("div.course-empty").data(matches.length ? [] : [t("dm.noMatch")]).join("div")
             .attr("class", "course-empty").text(d => d);
-        box.selectAll("div.course-note").data(full ? [`Up to ${MAX_COURSES} courses, remove one to add another`] : [])
+        box.selectAll("div.course-note").data(full ? [t("dm.capNote", { max: MAX_COURSES })] : [])
             .join("div").attr("class", "course-note").text(d => d);
 
         const options = box.selectAll("div.course-option").data(matches, d => d.course).join(enter => {
@@ -260,7 +266,7 @@ export function initDegreeManagement() {
             .on("mousedown", (event, d) => { event.preventDefault(); toggleCourse(d.course); });
         options.select(".swatch").style("background", d => selected.get(d.course) ?? "transparent");
         options.select(".course-option-name").text(d => d.course);
-        options.select(".course-option-meta").text(d => `${formatPercent(d.failRate)} fail · ${d.enrolled}`);
+        options.select(".course-option-meta").text(d => t("dm.optionMeta", { fail: formatPercent(d.failRate), n: d.enrolled }));
         box.selectAll("div.course-note").lower();
     }
 
@@ -323,7 +329,7 @@ export function initDegreeManagement() {
     elements.yearTo.addEventListener("change", () => onYearChange("to"));
 
     elements.reset.addEventListener("click", () => {
-        setOptions(elements.phase, PHASE_OPTIONS, DEFAULT_PHASE);
+        setOptions(elements.phase, phaseOptions(), DEFAULT_PHASE);
         elements.searchInput.value = "";
         store.set({ selectedCourses: NO_COURSES, phase: DEFAULT_PHASE });
         changeDepartment(DEFAULT_DEPARTMENT, { keepRange: false });
@@ -334,9 +340,25 @@ export function initDegreeManagement() {
         if (changed.length === 1 && changed[0] === "selectedCourses") refresh();
     });
 
+    // option labels and every chart string depend on the language, colors on the theme
+    const offSettings = onSettingsChange(() => {
+        setOptions(elements.phase, phaseOptions(), store.get().phase);
+        if (departmentRows.length === 0) {
+            if (!elements.scatterStatus.hidden) elements.scatterStatus.textContent = t("dm.loadingDepartment");
+            return;
+        }
+        populateCycles(store.get().cycle);
+        // only relabel, re-populating would swap "all degrees" for the default degree
+        elements.degree.querySelector('option[value=""]').textContent = t("dm.allDegrees");
+        refresh();
+    });
+
     // Bootstrap
 
-    setOptions(elements.phase, PHASE_OPTIONS, DEFAULT_PHASE);
+    elements.lineTitle.textContent = t("dm.lineTitle");
+    elements.callout.textContent = t("dm.hint");
+    elements.scatterStatus.textContent = t("common.loading");
+    setOptions(elements.phase, phaseOptions(), DEFAULT_PHASE);
     loadDepartmentIndex().then(index => {
         departments = index;
         setOptions(elements.department,
@@ -344,9 +366,9 @@ export function initDegreeManagement() {
         return changeDepartment(DEFAULT_DEPARTMENT, { keepRange: false });
     }).catch(error => {
         console.error(error);
-        elements.scatterStatus.textContent = "Could not load the department index. Run `python clean.py` first.";
+        elements.scatterStatus.textContent = t("dm.indexError");
         elements.scatterStatus.hidden = false;
     });
 
-    return () => { unsubscribe(); latestRequest++; };
+    return () => { unsubscribe(); offSettings(); latestRequest++; };
 }

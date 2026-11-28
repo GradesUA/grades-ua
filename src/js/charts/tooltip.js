@@ -35,4 +35,5 @@ export const tooltip = {
 export const escapeHtml = text => String(text).replace(/[&<>"']/g,
     char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]));
 
-export const formatPercent = value => `${(value * 100).toFixed(1)}%`;
+// percentages follow the ui language (40,6% in portuguese)
+export { formatPercent } from "../i18n.js";

@@ -1,7 +1,8 @@
 import { tooltip, escapeHtml, formatPercent } from "./tooltip.js";
+import { t, formatNumber } from "../i18n.js";
 
 const MARGIN = { top: 16, right: 24, bottom: 44, left: 52 };
-const POINT_COLOR = "#2563EB";
+const POINT_COLOR = "var(--point)";
 const FAIL_THRESHOLD = 0.5;
 const MAX_LABELS = 8;
 const LABEL_MAX_CHARS = 28;
@@ -12,18 +13,17 @@ export function createScatterPlot(container, { onSelect, onHover = () => {} }) {
     const root = d3.select(container);
     const svg = root.append("svg").attr("class", "chart-svg");
     const quadrant = svg.append("rect").attr("class", "quadrant-critical");
-    const quadrantLabel = svg.append("text").attr("class", "quadrant-label").text("CRITICAL BOTTLENECKS");
+    const quadrantLabel = svg.append("text").attr("class", "quadrant-label");
     const xAxisGroup = svg.append("g").attr("class", "axis");
     const yAxisGroup = svg.append("g").attr("class", "axis");
     const gridGroup = svg.append("g").attr("class", "grid");
     const medianLine = svg.append("line").attr("class", "guide-line");
     const thresholdLine = svg.append("line").attr("class", "guide-line");
-    const xTitle = svg.append("text").attr("class", "axis-title").text("Enrolments (student-years)");
-    const yTitle = svg.append("text").attr("class", "axis-title").attr("text-anchor", "middle").text("Failure rate");
+    const xTitle = svg.append("text").attr("class", "axis-title");
+    const yTitle = svg.append("text").attr("class", "axis-title").attr("text-anchor", "middle");
     const pointsGroup = svg.append("g");
     const labelsGroup = svg.append("g").attr("pointer-events", "none");
-    const emptyMessage = svg.append("text").attr("class", "empty-message").attr("text-anchor", "middle")
-        .text("No course units match the current filters");
+    const emptyMessage = svg.append("text").attr("class", "empty-message").attr("text-anchor", "middle");
 
     let currentStats = [];
     let currentSelection = new Map();
@@ -50,16 +50,21 @@ export function createScatterPlot(container, { onSelect, onHover = () => {} }) {
         const y = d3.scaleLinear().domain([0, 1]).range([MARGIN.top + innerHeight, MARGIN.top]);
         const radius = d3.scaleSqrt().domain([0, maxVolume]).range([5, 11]);
 
-        const t = svg.transition().duration(400);
+        const transition = svg.transition().duration(400);
 
         xAxisGroup.attr("transform", `translate(0,${MARGIN.top + innerHeight})`)
-            .transition(t).call(d3.axisBottom(x).ticks(Math.max(width / 90, 3)).tickSizeOuter(0));
+            .transition(transition).call(d3.axisBottom(x).ticks(Math.max(width / 90, 3)).tickFormat(d => formatNumber(d)).tickSizeOuter(0));
         yAxisGroup.attr("transform", `translate(${MARGIN.left},0)`)
-            .transition(t).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
+            .transition(transition).call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(".0%")).tickSizeOuter(0));
         gridGroup.selectAll("line").data(y.ticks(5)).join("line")
             .attr("x1", MARGIN.left).attr("x2", MARGIN.left + innerWidth)
             .attr("y1", d => y(d)).attr("y2", d => y(d));
 
+        // strings are set on every render so a language change only needs a re-render
+        quadrantLabel.text(t("scatter.critical"));
+        xTitle.text(t("scatter.xTitle"));
+        yTitle.text(t("chart.failRate"));
+        emptyMessage.text(t("scatter.empty"));
         xTitle.attr("x", MARGIN.left + innerWidth / 2).attr("text-anchor", "middle").attr("y", height - 8);
         yTitle.attr("transform", `translate(14,${MARGIN.top + innerHeight / 2}) rotate(-90)`);
 
@@ -84,21 +89,21 @@ export function createScatterPlot(container, { onSelect, onHover = () => {} }) {
                     .attr("transform", d => `translate(${x(d.enrolled)},${y(d.failRate)})`)
                     .style("opacity", 0);
                 g.append("circle").attr("class", "ring").attr("fill", "none");
-                g.append("circle").attr("class", "dot").attr("fill", POINT_COLOR);
+                g.append("circle").attr("class", "dot").style("fill", POINT_COLOR);
                 return g;
             },
             update => update,
-            exit => exit.transition(t).style("opacity", 0).remove(),
+            exit => exit.transition(transition).style("opacity", 0).remove(),
         )
             .on("click", (event, d) => onSelect(d.course))
             .on("mouseenter", (event, d) => {
                 onHover(currentSelection.has(d.course) ? d.course : null);
                 tooltip.show(
                     `<strong>${escapeHtml(d.course)}</strong>
-                     <div>Failure rate: <b>${formatPercent(d.failRate)}</b></div>
-                     <div>Pass rate: <b>${formatPercent(d.passRate)}</b></div>
-                     <div>Enrolments: <b>${d.enrolled}</b></div>
-                     <div class="muted">${currentSelection.has(d.course) ? "Click to remove from" : "Click to add to"} the trend chart</div>`, event);
+                     <div>${t("chart.failRate")}: <b>${formatPercent(d.failRate)}</b></div>
+                     <div>${t("chart.passRate")}: <b>${formatPercent(d.passRate)}</b></div>
+                     <div>${t("chart.enrolments")}: <b>${formatNumber(d.enrolled)}</b></div>
+                     <div class="muted">${t(currentSelection.has(d.course) ? "scatter.clickRemove" : "scatter.clickAdd")}</div>`, event);
             })
             .on("mousemove", event => tooltip.move(event))
             .on("mouseleave", () => { tooltip.hide(); onHover(null); })
@@ -106,12 +111,12 @@ export function createScatterPlot(container, { onSelect, onHover = () => {} }) {
                 const color = currentSelection.get(d.course);
                 const g = d3.select(this);
                 g.classed("selected", !!color);
-                g.select(".dot").attr("r", radius(d.enrolled)).attr("fill", color ?? POINT_COLOR)
+                g.select(".dot").attr("r", radius(d.enrolled)).style("fill", color ?? POINT_COLOR)
                     .attr("fill-opacity", color ? 0.9 : hasSelection ? 0.18 : 0.75);
                 g.select(".ring").attr("r", radius(d.enrolled) + 4).style("stroke", color ?? null)
                     .style("display", color ? null : "none");
             })
-            .transition(t)
+            .transition(transition)
             .attr("transform", d => `translate(${x(d.enrolled)},${y(d.failRate)})`)
             .style("opacity", 1);
 

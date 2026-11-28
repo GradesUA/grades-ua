@@ -20,6 +20,17 @@
     --text-soft: #475569;
     --grid: #EEF2F6;
 
+    --chrome: #102A43;
+    --chrome-text: #F8FAFC;
+    --badge-bg: #DBEAFE;
+    --guide: #94A3B8;
+    --point: #2563EB;
+    --series-1: #257de0;
+    --series-2: #f47230;
+    --series-3: #00b894;
+    --series-4: #f2a600;
+    --series-5: #ee7fac;
+
     --radius: 10px;
     --radius-sm: 6px;
     --shadow: 0 1px 2px rgba(16, 42, 67, 0.05), 0 2px 8px rgba(16, 42, 67, 0.04);
@@ -27,6 +38,42 @@
     --focus-ring: 0 0 0 3px rgba(59, 130, 246, 0.25);
 
     --font: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    color-scheme: light;
+}
+
+/* dark theme: --blue is the ink color, so it turns light; series steps are validated for the dark surface */
+:root[data-theme="dark"] {
+    --blue: #E2E8F0;
+    --sec-blue: #1E3A56;
+    --accent: #60A5FA;
+    --accent-soft: #172A46;
+    --accent-border: #1E4B8A;
+    --accent-strong: #93C5FD;
+    --warning-text: #FBBF24;
+
+    --white: #152131;
+    --white-gray: #0E1824;
+    --gray: #8394A8;
+    --border: #243245;
+    --border-strong: #34465D;
+    --text: #E6EDF5;
+    --text-muted: #94A3B8;
+    --text-soft: #B8C4D2;
+    --grid: #1E2B3B;
+
+    --chrome: #0B1622;
+    --badge-bg: #1E3A5F;
+    --guide: #64748B;
+    --point: #60A5FA;
+    --series-1: #338ced;
+    --series-2: #e76624;
+    --series-3: #00a888;
+    --series-4: #d28e05;
+    --series-5: #e24d8b;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 8px 20px rgba(0, 0, 0, 0.35);
+    color-scheme: dark;
 }
 
 * {
@@ -74,7 +121,7 @@ button i {
     top: 0;
     z-index: 20;
     height: var(--top-height);
-    background-color: var(--blue);
+    background-color: var(--chrome);
     display: flex;
     align-items: center;
     padding: 0px 16px;
@@ -83,9 +130,9 @@ button i {
 
 .top-bar button {
     margin-right: 10px;
-    border: 1px solid var(--white-gray);
+    border: 1px solid var(--chrome-text);
     background-color: transparent;
-    color: var(--white-gray);
+    color: var(--chrome-text);
 }
 
 .top-bar button:hover {
@@ -119,7 +166,7 @@ button i {
     width: var(--sidebar-width);
     height: calc(100% - var(--top-height));
     z-index: 15;
-    background-color: var(--blue);
+    background-color: var(--chrome);
     color: #fff;
     transition: left 0.3s ease;
     box-shadow: var(--shadow-hover);
@@ -139,7 +186,7 @@ button i {
 }
 
 .sidebar .btn-sidebar {
-    background-color: var(--blue);
+    background-color: var(--chrome);
     border: none;
     color: #fff;
     padding: 12px 14px;
@@ -362,7 +409,7 @@ button i {
 .badge {
     padding: 4px 10px;
     border-radius: 999px;
-    background: #DBEAFE;
+    background: var(--badge-bg);
     color: var(--accent-strong);
     font-size: 11px;
     font-weight: 700;
@@ -462,7 +509,7 @@ button i {
 }
 
 .guide-line {
-    stroke: #94a3b8;
+    stroke: var(--guide);
     stroke-dasharray: 5 4;
 }
 
@@ -488,7 +535,7 @@ button i {
 }
 
 .point .dot {
-    stroke: #fff;
+    stroke: var(--white);
     stroke-width: 1;
     transition: fill-opacity 0.2s;
 }
@@ -503,7 +550,7 @@ button i {
 }
 
 .point-label {
-    fill: #334155;
+    fill: var(--text-soft);
     font-size: 10.5px;
 }
 
@@ -513,7 +560,7 @@ button i {
 }
 
 .crosshair {
-    stroke: #94a3b8;
+    stroke: var(--guide);
     stroke-width: 1;
 }
 
@@ -526,7 +573,7 @@ button i {
     padding: 8px 10px;
     border-radius: 8px;
     box-shadow: var(--shadow-hover);
-    background: var(--blue);
+    background: var(--chrome);
     color: #fff;
     font-size: 12px;
     line-height: 1.5;
@@ -541,7 +588,7 @@ button i {
 }
 
 .chart-tooltip .muted {
-    color: var(--border-strong);
+    color: #CBD5E1;
 }
 
 .chart-tooltip .swatch {
@@ -655,7 +702,7 @@ button i {
     padding: 0 32px 0 12px;
     background-color: var(--white-gray);
     color: var(--blue);
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-strong);
     border-radius: 6px;
     font-size: 13px;
     outline: none;
@@ -675,14 +722,14 @@ button i {
     position: absolute;
     right: 6px;
     background: transparent;
-    color: #64748b;
+    color: var(--text-muted);
     padding: 2px;
     border-radius: 4px;
 }
 
 .clear-btn:hover {
     color: var(--blue);
-    background-color: #e2e8f0;
+    background-color: var(--border);
 }
 
 .clear-btn i {
@@ -708,27 +755,27 @@ button i {
 
 .course-option:hover,
 .course-option.active {
-    background-color: #eff6ff;
+    background-color: var(--accent-soft);
     font-weight: 600;
 }
 
 .course-empty {
     padding: 8px 10px;
     font-size: 12px;
-    color: #94a3b8;
+    color: var(--text-muted);
 }
 
 .op-container select:disabled,
 .dropdown-btn:disabled {
-    background-color: #e2e8f0;
-    color: #94a3b8;
-    border-color: #cbd5e1;
+    background-color: var(--border);
+    color: var(--text-muted);
+    border-color: var(--border-strong);
     cursor: not-allowed;
     opacity: 0.75;
 }
 
 .dropdown-options .select-all-option {
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--border);
     padding-bottom: 8px;
     margin-bottom: 2px;
     font-weight: 700;
@@ -1048,4 +1095,85 @@ body.landing .main {
 
 .chart-tooltip .tooltip-hovered {
     font-weight: 700;
+}
+
+:root[data-theme="dark"] .chart-tooltip {
+    border: 1px solid var(--border-strong);
+}
+
+/* language and theme controls, over the top bar or on the landing page */
+.app-settings {
+    position: fixed;
+    top: 12px;
+    right: 16px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lang-switch {
+    display: flex;
+    height: 36px;
+    border: 1px solid var(--chrome-text);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.lang-switch button {
+    padding: 0 10px;
+    border-radius: 0;
+    background: transparent;
+    color: var(--chrome-text);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.lang-switch button:hover {
+    background-color: var(--sec-blue);
+}
+
+.lang-switch button.active {
+    background-color: var(--chrome-text);
+    color: var(--chrome);
+}
+
+.theme-toggle {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid var(--chrome-text);
+    background: transparent;
+    color: var(--chrome-text);
+}
+
+.theme-toggle:hover {
+    background-color: var(--sec-blue);
+}
+
+.theme-toggle i {
+    display: flex;
+    padding: 0;
+    font-size: 16px;
+}
+
+body.landing .lang-switch,
+body.landing .theme-toggle {
+    border-color: var(--border-strong);
+}
+
+body.landing .lang-switch button,
+body.landing .theme-toggle {
+    color: var(--blue);
+}
+
+body.landing .lang-switch button:hover,
+body.landing .theme-toggle:hover {
+    background-color: var(--border);
+}
+
+body.landing .lang-switch button.active {
+    background-color: var(--blue);
+    color: var(--white);
 }

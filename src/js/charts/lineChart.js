@@ -1,7 +1,8 @@
 import { tooltip, escapeHtml, formatPercent } from "./tooltip.js";
+import { t } from "../i18n.js";
 
 const MARGIN = { top: 12, right: 24, bottom: 32, left: 48 };
-const DEGREE_COLOR = "#102A43";
+const DEGREE_COLOR = "var(--blue)";
 const HOVER_DISTANCE = 14;
 
 // logic for the line chart is in src/js/metrics.js, this file is only for rendering
@@ -61,7 +62,7 @@ export function createLineChart(container, { onHover = () => {} } = {}) {
         const x = d3.scaleLinear().domain(xDomain).range([MARGIN.left, width - MARGIN.right]);
         const y = d3.scaleLinear().domain([0, 1]).range([height - MARGIN.bottom, MARGIN.top]);
         const years = d3.range(fromYear, toYear + 1);
-        const t = svg.transition().duration(400);
+        const transition = svg.transition().duration(400);
 
         gridGroup.selectAll("line").data(y.ticks(5)).join("line")
             .attr("x1", MARGIN.left).attr("x2", width - MARGIN.right)
@@ -83,11 +84,11 @@ export function createLineChart(container, { onHover = () => {} } = {}) {
             exit => exit.remove(),
         ).each(function (d) {
             const g = d3.select(this);
-            g.select("path").attr("stroke", d.color)
+            g.select("path").style("stroke", d.color)
                 .attr("stroke-dasharray", d.dashed ? "6 4" : null)
-                .transition(t).attr("d", line(d.points));
+                .transition(transition).attr("d", line(d.points));
             g.selectAll("circle").data(d.points.filter(p => p.passRate !== null), p => p.year).join("circle")
-                .attr("r", 3.5).attr("fill", d.color).attr("cx", p => x(p.year)).attr("cy", p => y(p.passRate));
+                .attr("r", 3.5).style("fill", d.color).attr("cx", p => x(p.year)).attr("cy", p => y(p.passRate));
         }).order();
         applyHover();
 
@@ -102,13 +103,13 @@ export function createLineChart(container, { onHover = () => {} } = {}) {
 
                 const rows = seriesList().map(series => ({ series, point: series.points.find(p => p.year === year) }));
                 focusGroup.selectAll("circle").data(rows.filter(r => r.point && r.point.passRate !== null), r => r.series.key)
-                    .join("circle").attr("r", 6).attr("fill", "#fff").attr("stroke-width", 2.5)
-                    .attr("stroke", r => r.series.color).attr("cx", x(year)).attr("cy", r => y(r.point.passRate));
+                    .join("circle").attr("r", 6).style("fill", "var(--white)").attr("stroke-width", 2.5)
+                    .style("stroke", r => r.series.color).attr("cx", x(year)).attr("cy", r => y(r.point.passRate));
 
                 tooltip.show(`<strong>${year}</strong>` + rows.map(({ series, point }) => `
                     <div class="${series.key === currentHover ? "tooltip-hovered" : ""}"><span class="swatch" style="background:${series.color}"></span>${escapeHtml(series.label)}:
-                    <b>${point && point.passRate !== null ? formatPercent(point.passRate) : "no data"}</b>
-                    ${point && point.enrolled ? `<span class="muted">(${point.enrolled} enrolled)</span>` : ""}</div>`).join(""), event);
+                    <b>${point && point.passRate !== null ? formatPercent(point.passRate) : t("line.noData")}</b>
+                    ${point && point.enrolled ? `<span class="muted">${t("line.enrolled", { n: point.enrolled })}</span>` : ""}</div>`).join(""), event);
             })
             .on("mouseleave", () => {
                 crosshair.style("display", "none");
