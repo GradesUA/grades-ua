@@ -1,7 +1,7 @@
 <section class="degree-management">
     <div class="search-header">
-        <h2>COURSE REGENCE</h2>
-        <h1>Exam Diagnostics</h1>
+        <h2 data-i18n="nav.cr.eyebrow"></h2>
+        <h1 data-i18n="nav.cr.title"></h1>
         <div class="search-container">
 
             <!-- <div class="op-container">
@@ -10,16 +10,16 @@
             </div> -->
 
             <div class="op-container">
-                <label for="filter-course-input">Course</label>
+                <label for="filter-course-input" data-i18n="cr.course"></label>
                 <div id="filter-course-box" class="searchable-select">
                     <div class="search-input-wrapper">
                         <input
                             type="text"
                             id="filter-course-input"
-                            placeholder="All courses (type to search)..."
+                            data-i18n-placeholder="cr.placeholderAll"
                             autocomplete="off"
                         />
-                        <button type="button" id="btn-clear-course" class="clear-btn" title="Clear" hidden>
+                        <button type="button" id="btn-clear-course" class="clear-btn" data-i18n-title="common.clear" data-i18n-aria="common.clear" hidden>
                             <i class="fi fi-br-cross-small"></i>
                         </button>
                     </div>
@@ -28,15 +28,15 @@
             </div>
             
             <div class="op-container">
-                <label for="filter-department">Department</label>
+                <label for="filter-department" data-i18n="common.department"></label>
                 <select id="filter-department"></select>
             </div>
 
             <div class="op-container">
-                <label for="btn-years-dropdown">Academic Year</label>
+                <label for="btn-years-dropdown" data-i18n="common.academicYear"></label>
                 <div id="filter-years" class="multi-select">
                     <button type="button" id="btn-years-dropdown" class="dropdown-btn">
-                        <span>Select academic years...</span>
+                        <span></span>
                         <i class="fi fi-br-angle-small-down"></i>
                     </button>
 
@@ -45,7 +45,7 @@
             </div>
 
             <button type="button" id="btn-reset" class="btn-reset">
-                <i class="fi fi-br-rotate-right"></i>Reset view
+                <i class="fi fi-br-rotate-right"></i><span data-i18n="common.reset"></span>
             </button>
 
         </div>
@@ -54,20 +54,20 @@
     <div class="charts-layout">
         <article class="chart-container chart-card">
             <header class="card-header">
-                <h3>Course Performance by Degree</h3>
-                <span id="degrees-badge" class="badge">0 DEGREES</span>
+                <h3 data-i18n="cr.divergingTitle"></h3>
+                <span id="degrees-badge" class="badge"></span>
             </header>
             <div id="course-diverging-chart" class="chart-body"></div>
-            <footer id="course-diverging-footer" class="card-footer">Select a course unit above to inspect performance across degrees.</footer>
+            <footer id="course-diverging-footer" class="card-footer"></footer>
         </article>
         
         <article class="chart-container chart-card">
             <header class="card-header">
-                <h3 id="exam-stacked-title">Exam Season Breakdown</h3>
-                <span id="exam-scope-badge" class="badge">ALL DEGREES</span>
+                <h3 id="exam-stacked-title" data-i18n="cr.stackedTitle"></h3>
+                <span id="exam-scope-badge" class="badge"></span>
             </header>
             <div id="exam-stacked-chart" class="chart-body"></div>
-            <footer id="exam-stacked-footer" class="card-footer">Click a degree bar on the left to filter this breakdown.</footer>
+            <footer id="exam-stacked-footer" class="card-footer"></footer>
         </article>
     </div>
 </section>

@@ -4,6 +4,8 @@ import { createStore } from "../state.js";
 import { computeDivergingEquity, computeExamOutcomesByYear } from "../metrics.js";
 import { createDivergingBarChart } from "../charts/divergingBarChart.js";
 import { createStackedBarChart } from "../charts/stackedBarChart.js";
+import { t } from "../i18n.js";
+import { onSettingsChange } from "../settings.js";
 
 const normalizeText = str =>
     String(str)
@@ -50,8 +52,6 @@ export function initCourseRegence() {
     let availableYearsForCourse = [];
     let latestRequest = 0;
 
-    // --- Helpers ---
-
     const setOptions = (select, options, value) => {
         d3.select(select)
             .selectAll("option")
@@ -61,8 +61,6 @@ export function initCourseRegence() {
             .text(d => d.label);
         select.value = value;
     };
-
-    // --- 1. Course Searchable Dropdown ---
 
     function renderCourseDropdown(query = "") {
         const cleanQuery = normalizeText(query.trim());
@@ -76,7 +74,7 @@ export function initCourseRegence() {
         if (filtered.length === 0) {
             container.append("div")
                 .attr("class", "course-empty")
-                .text("No courses found");
+                .text(t("cr.noCourses"));
             return;
         }
 
@@ -108,17 +106,15 @@ export function initCourseRegence() {
         refresh();
     }
 
-    // --- 2. Secondary Filters ---
-
     function lockSecondaryFilters() {
-        setOptions(elements.department, [{ value: "", label: "All departments" }], "");
+        setOptions(elements.department, [{ value: "", label: t("common.allDepartments") }], "");
         elements.department.disabled = true;
 
         availableYearsForCourse = [];
         elements.yearsOptions.innerHTML = "";
         elements.yearsContainer.classList.remove("open");
         elements.yearsBtn.disabled = true;
-        elements.yearsBtn.querySelector("span").textContent = "All academic years";
+        elements.yearsBtn.querySelector("span").textContent = t("common.allYears");
     }
 
     function populateDepartmentsForCourse(courseRows, preferredDept = "") {
@@ -126,7 +122,7 @@ export function initCourseRegence() {
             .sort(d3.ascending);
 
         const options = [
-            { value: "", label: "All departments" },
+            { value: "", label: t("common.allDepartments") },
             ...deptIds.map(id => ({
                 value: id,
                 label: departmentsMap.has(id) ? `${id.toUpperCase()} - ${departmentsMap.get(id)}` : id.toUpperCase(),
@@ -145,7 +141,7 @@ export function initCourseRegence() {
             selectedYears.length === availableYearsForCourse.length;
 
         if (allSelected || selectedYears.length === 0) {
-            span.textContent = "All academic years";
+            span.textContent = t("common.allYears");
         } else {
             span.textContent = [...selectedYears]
                 .sort(d3.ascending)
@@ -169,7 +165,7 @@ export function initCourseRegence() {
 
         container.append("label")
             .attr("class", "select-all-option")
-            .html(`<input type="checkbox" id="chk-all-years" checked> All academic years`);
+            .html(`<input type="checkbox" id="chk-all-years" checked> <span>${t("common.allYears")}</span>`);
 
         container.selectAll("label.year-item")
             .data(availableYearsForCourse, d => d)
@@ -182,22 +178,19 @@ export function initCourseRegence() {
         return selectedYears;
     }
 
-    // --- 3. Rendering ---
-
     function refresh() {
         const { course, department, selectedYears, selectedDegree } = store.get();
 
         if (!course || selectedYears.length === 0) {
             divergingChart.update([], null);
             stackedChart.update({ data: [], keys: [] });
-            elements.degreesBadge.textContent = "0 DEGREES";
-            elements.scopeBadge.textContent = "NO COURSE";
-            elements.divergingFooter.textContent = "Select a course unit above to inspect performance across degrees.";
-            elements.stackedFooter.textContent = "Click a degree bar on the left to filter this breakdown.";
+            elements.degreesBadge.textContent = t("cr.degrees", { n: 0 });
+            elements.scopeBadge.textContent = t("cr.noCourse");
+            elements.divergingFooter.textContent = t("cr.footerEmpty");
+            elements.stackedFooter.textContent = t("cr.stackedFooterEmpty");
             return;
         }
 
-        // Linhas da UC filtradas por departamento e anos selecionados
         const scopedRows = allRows.filter(r =>
             r.course === course &&
             (!department || r.departmentId === department) &&
@@ -206,19 +199,17 @@ export function initCourseRegence() {
 
         const degreeEquity = computeDivergingEquity(scopedRows, "degree");
 
-        // Se o curso selecionado deixou de existir nos filtros atuais, limpa a seleção
         if (selectedDegree && !degreeEquity.some(d => d.label === selectedDegree)) {
             store.set({ selectedDegree: null });
             return;
         }
 
-        elements.degreesBadge.textContent = `${degreeEquity.length} ${degreeEquity.length === 1 ? "DEGREE" : "DEGREES"}`;
+        elements.degreesBadge.textContent = t(degreeEquity.length === 1 ? "cr.degree" : "cr.degrees", { n: degreeEquity.length });
         elements.divergingFooter.textContent = selectedDegree
-            ? `Filtered by: ${selectedDegree} (click again to clear)`
-            : "Click a degree bar to isolate its exam season results on the right.";
+            ? t("cr.filteredBy", { degree: selectedDegree })
+            : t("cr.clickDegree");
         divergingChart.update(degreeEquity, selectedDegree);
 
-        // Gráfico da direita: filtra ainda pelo curso clicado no gráfico da esquerda (se existir)
         const outcomeRows = selectedDegree
             ? scopedRows.filter(r => r.degree === selectedDegree)
             : scopedRows;
@@ -226,13 +217,11 @@ export function initCourseRegence() {
         const stackedData = computeExamOutcomesByYear(outcomeRows, selectedYears);
         stackedChart.update(stackedData);
 
-        elements.scopeBadge.textContent = selectedDegree ? selectedDegree : "ALL DEGREES";
+        elements.scopeBadge.textContent = selectedDegree ? selectedDegree : t("cr.allDegrees");
         elements.stackedFooter.textContent = selectedDegree
-            ? `Showing exam outcomes exclusively for ${selectedDegree}.`
-            : `Aggregated exam outcomes across all ${degreeEquity.length} degrees.`;
+            ? t("cr.stackedFooterDegree", { degree: selectedDegree })
+            : t("cr.stackedFooterAll", { n: degreeEquity.length });
     }
-
-    // --- 4. Events ---
 
     elements.courseInput.addEventListener("focus", () => {
         renderCourseDropdown(elements.courseInput.value);
@@ -297,15 +286,31 @@ export function initCourseRegence() {
         selectCourse("");
     });
 
-    // Reage ao clique nas barras do gráfico divergente
     const unsubscribe = store.subscribe((_, changed) => {
         if (changed.length === 1 && changed[0] === "selectedDegree") refresh();
     });
 
-    // --- 5. Bootstrap ---
+    // the course input placeholder depends on the loading state, so it is kept as a key
+    let placeholderKey = "cr.placeholderLoading";
+    const setPlaceholder = key => {
+        placeholderKey = key;
+        elements.courseInput.placeholder = t(key);
+    };
+
+    // option labels and chart strings follow the language, chart colors the theme
+    const offSettings = onSettingsChange(() => {
+        elements.courseInput.placeholder = t(placeholderKey);
+        const allDepartments = elements.department.querySelector('option[value=""]');
+        if (allDepartments) allDepartments.textContent = t("common.allDepartments");
+        const allYears = elements.yearsOptions.querySelector(".select-all-option span");
+        if (allYears) allYears.textContent = t("common.allYears");
+        updateYearsButtonLabel(store.get().selectedYears);
+        if (elements.courseBox.classList.contains("open")) renderCourseDropdown(elements.courseInput.value);
+        refresh();
+    });
 
     lockSecondaryFilters();
-    elements.courseInput.placeholder = "Loading courses...";
+    setPlaceholder("cr.placeholderLoading");
 
     const requestId = ++latestRequest;
     const coursesSet = new Set();
@@ -315,7 +320,6 @@ export function initCourseRegence() {
             if (requestId !== latestRequest) return;
             departmentsMap = new Map(index.map(d => [d.id, d.name]));
 
-            // Carrega todos em paralelo, mas atualiza a lista de UCs assim que cada departamento chega
             const deptTasks = index.map(async dept => {
                 const rows = await loadDepartment(dept.id);
                 if (requestId !== latestRequest) return [];
@@ -332,7 +336,7 @@ export function initCourseRegence() {
 
                 if (addedNew) {
                     availableCourses = Array.from(coursesSet).sort(d3.ascending);
-                    elements.courseInput.placeholder = "Select a course (type to search)...";
+                    setPlaceholder("cr.placeholderReady");
                     if (elements.courseBox.classList.contains("open")) {
                         renderCourseDropdown(elements.courseInput.value);
                     }
@@ -346,18 +350,19 @@ export function initCourseRegence() {
         .then(lists => {
             if (!lists || requestId !== latestRequest) return;
             allRows = lists.flat();
-            elements.courseInput.placeholder = "Select a course (type to search)...";
+            setPlaceholder("cr.placeholderReady");
             renderCourseDropdown(elements.courseInput.value);
             refresh();
         })
         .catch(error => {
             console.error(error);
-            elements.courseInput.placeholder = "Error loading courses";
+            setPlaceholder("cr.placeholderError");
         });
 
     return () => {
         latestRequest++;
         unsubscribe();
+        offSettings();
         document.removeEventListener("click", onDocumentClick);
         divergingChart.destroy();
         stackedChart.destroy();

@@ -17,15 +17,12 @@ function parseRow(row) {
         degree: row.nome_curso,
         course: row.nome_disciplina,
         examType: row.nvctipoexame,
-        passed: row.notafinal === "Sim",
-
-        // Colunas para Quality & Retention:
         studentId: row.id_estudante,
+        grade: +row.nota,
         approved: row.aprovado === "1",
         evaluated: row.avaliado === "1",
         regime: row.nome_regime,
         accessType: row.nome_tipoacesso,
-        
     };
 }
 

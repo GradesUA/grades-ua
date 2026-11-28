@@ -1,59 +1,75 @@
 <section class="degree-management">
     <div class="search-header">
-        <h2>DEGREE MANAGEMENT</h2>
-        <h1>Curricular Bottlenecks</h1>
+        <h2 data-i18n="nav.dm.eyebrow"></h2>
+        <h1 data-i18n="nav.dm.title"></h1>
         <div class="search-container">
 
             <div class="op-container">
-                <label for="filter-department">Department</label>
+                <label for="filter-department" data-i18n="common.department"></label>
                 <select id="filter-department"></select>
             </div>
 
             <div class="op-container">
-                <label for="filter-degree">Degree / Course</label>
-                <select id="filter-degree"></select>
-            </div>
-
-            <div class="op-container">
-                <label for="filter-cycle" title="The dataset has no curricular-year column, so students are grouped by study cycle instead.">Curricular Year (by cycle)</label>
+                <label for="filter-cycle" data-i18n="dm.cycle" data-i18n-title="dm.cycleHelp"></label>
                 <select id="filter-cycle"></select>
             </div>
 
             <div class="op-container">
-                <label for="filter-year-from">Academic Years Range</label>
+                <label for="filter-degree" data-i18n="dm.degree"></label>
+                <select id="filter-degree"></select>
+            </div>
+
+            <div class="op-container">
+                <label for="filter-year-from" data-i18n="dm.years"></label>
                 <div class="range-inputs">
-                    <select id="filter-year-from" aria-label="From academic year"></select>
+                    <select id="filter-year-from" data-i18n-aria="dm.yearFrom"></select>
                     <span class="range-separator">-</span>
-                    <select id="filter-year-to" aria-label="To academic year"></select>
+                    <select id="filter-year-to" data-i18n-aria="dm.yearTo"></select>
                 </div>
             </div>
 
-            <button type="button" id="btn-reset" class="btn-reset"><i class="fi fi-br-rotate-right"></i>Reset view</button>
+            <div class="op-container">
+                <label for="filter-phase" data-i18n="dm.phase" data-i18n-title="dm.phaseHelp"></label>
+                <select id="filter-phase"></select>
+            </div>
+
+            <button type="button" id="btn-reset" class="btn-reset"><i class="fi fi-br-rotate-right"></i><span data-i18n="common.reset"></span></button>
         </div>
     </div>
 
     <div class="charts-layout">
         <article class="chart-container chart-card">
             <header class="card-header">
-                <h3>Course Failure Rate vs. Student Volume</h3>
-                <span id="course-count-badge" class="badge">- COURSE UNITS</span>
+                <h3 data-i18n="dm.scatterTitle"></h3>
+                <span id="course-count-badge" class="badge">-</span>
             </header>
             <div id="scatter-chart" class="chart-body">
-                <p id="scatter-status" class="chart-status">Loading…</p>
+                <p id="scatter-status" class="chart-status"></p>
             </div>
             <footer id="scatter-footer" class="card-footer"></footer>
         </article>
 
         <article class="chart-container chart-card">
             <header class="card-header">
-                <h3 id="line-title">Longitudinal Pass Rate</h3>
+                <h3 id="line-title"></h3>
             </header>
+            <div class="course-picker">
+                <div id="course-search" class="searchable-select">
+                    <div class="search-input-wrapper">
+                        <input type="text" id="course-search-input" data-i18n-placeholder="dm.searchPlaceholder"
+                            autocomplete="off" role="combobox" aria-expanded="false" aria-controls="course-search-options"
+                            data-i18n-aria="dm.searchLabel">
+                    </div>
+                    <div id="course-search-options" class="dropdown-options" role="listbox"></div>
+                </div>
+                <div id="course-chips" class="course-chips"></div>
+            </div>
             <div class="kpi">
                 <span id="kpi-value" class="kpi-value">-</span>
                 <span id="kpi-label" class="kpi-label"></span>
             </div>
             <div id="line-chart" class="chart-body"></div>
-            <div id="trend-callout" class="callout">Select a course bubble to compare its historical trend against the degree average.</div>
+            <div id="trend-callout" class="callout"></div>
         </article>
     </div>
 </section>

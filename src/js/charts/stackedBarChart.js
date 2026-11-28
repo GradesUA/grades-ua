@@ -1,7 +1,15 @@
 import { tooltip, escapeHtml } from "./tooltip.js";
+import { t, formatNumber, formatPercent } from "../i18n.js";
+import { getTheme } from "../theme.js";
 
 const MARGIN = { right: 36, bottom: 28, left: 145 };
-const PALETTE = ["#2563EB", "#F59E0B", "#10B981", "#8B5CF6", "#EC4899", "#06B6D4", "#64748B"];
+// in dark mode the ramp runs dim to bright, so the newest year still stands out on the dark surface
+const RAMPS = {
+    light: d3.interpolateLab("#84b9f3", "#0e3d7e"),
+    dark: d3.interpolateLab("#1d5fb0", "#cce3fd"),
+};
+const outcomeLabel = label => t(`outcome.${label}`);
+const FADED = 0.25;
 
 export function createStackedBarChart(container) {
     let current = { data: [], keys: [] };
@@ -28,7 +36,7 @@ export function createStackedBarChart(container) {
                 .attr("x", width / 2)
                 .attr("y", height / 2)
                 .attr("text-anchor", "middle")
-                .text("Select a course unit to view exam season results");
+                .text(t("stacked.empty"));
             return;
         }
 
@@ -39,11 +47,17 @@ export function createStackedBarChart(container) {
         const legendRows = Math.ceil(keys.length / itemsPerRow);
         const topMargin = 20 + legendRows * 18;
 
-        const innerW = Math.max(80, width - MARGIN.left - MARGIN.right);
+        // the label column grows with the longest translated outcome name
+        const probe = svg.append("text").attr("font-size", "12px").attr("font-weight", "600");
+        const labelWidth = d3.max(data, d => probe.text(outcomeLabel(d.label)).node().getComputedTextLength()) ?? 0;
+        probe.remove();
+        const left = Math.min(Math.max(MARGIN.left, labelWidth + 24), width * 0.45);
+
+        const innerW = Math.max(80, width - left - MARGIN.right);
         const innerH = Math.max(60, height - topMargin - MARGIN.bottom);
 
         const g = svg.append("g")
-            .attr("transform", `translate(${MARGIN.left},${topMargin})`);
+            .attr("transform", `translate(${left},${topMargin})`);
 
         const stackedSeries = d3.stack().keys(keys)(data);
 
@@ -60,7 +74,12 @@ export function createStackedBarChart(container) {
 
         const color = d3.scaleOrdinal()
             .domain(keys)
-            .range(PALETTE);
+            .range(keys.map((_, i) => RAMPS[getTheme()](keys.length === 1 ? 0.6 : i / (keys.length - 1))));
+        const yearTotals = Object.fromEntries(keys.map(k => [k, d3.sum(data, d => d[k])]));
+        const highlightYear = key => {
+            g.selectAll("rect.segment").attr("opacity", s => key === null || s.key === key ? 1 : FADED);
+            legend.selectAll("g.legend-item").attr("opacity", k => key === null || k === key ? 1 : FADED);
+        };
 
         const legend = svg.append("g")
             .attr("transform", `translate(${legendStartX}, 10)`);
@@ -71,6 +90,8 @@ export function createStackedBarChart(container) {
             const labelText = `${k}/${+k + 1}`;
 
             const item = legend.append("g")
+                .datum(k)
+                .attr("class", "legend-item")
                 .attr("transform", `translate(${col * itemWidth}, ${row * 18})`);
 
             item.append("rect")
@@ -84,7 +105,7 @@ export function createStackedBarChart(container) {
                 .attr("y", 9)
                 .attr("font-size", "11px")
                 .attr("font-weight", "600")
-                .attr("fill", "#102A43")
+                .style("fill", "var(--blue)")
                 .text(labelText);
         });
 
@@ -111,8 +132,8 @@ export function createStackedBarChart(container) {
             .attr("text-anchor", "end")
             .attr("font-size", "12px")
             .attr("font-weight", "600")
-            .attr("fill", "#102A43")
-            .text(d => d.label);
+            .style("fill", "var(--blue)")
+            .text(d => outcomeLabel(d.label));
 
         const barHeight = Math.min(y.bandwidth(), 38);
         const yOffset = (y.bandwidth() - barHeight) / 2;
@@ -127,33 +148,33 @@ export function createStackedBarChart(container) {
         layers.selectAll("rect")
             .data(layer => layer.map(seg => ({ ...seg, key: layer.key })))
             .join("rect")
+            .attr("class", "segment")
             .attr("x", d => x(d[0]))
             .attr("y", d => y(d.data.label) + yOffset)
             .attr("width", d => Math.max(0, x(d[1]) - x(d[0])))
             .attr("height", barHeight)
-            .attr("stroke", "#fff")
+            .style("stroke", "var(--white)")
             .attr("stroke-width", keys.length > 1 ? 1.5 : 0)
             .style("cursor", "pointer")
             .on("mouseenter", (event, d) => {
                 const yearLabel = `${d.key}/${+d.key + 1}`;
                 const segValue = d.data[d.key];
-                const sharePct = d.data.total > 0 ? ((segValue / d.data.total) * 100).toFixed(1) : 0;
+                const yearTotal = yearTotals[d.key];
+                const yearShare = formatPercent(yearTotal > 0 ? segValue / yearTotal : 0);
 
-                const breakdown = keys.length > 1
-                    ? `<hr style="border:0;border-top:1px solid rgba(255,255,255,0.2);margin:4px 0">` +
-                      keys.map(k => `<span class="swatch" style="background:${color(k)}"></span>${k}/${+k + 1}: <b>${d.data[k]}</b>`).join("<br>")
-                    : "";
-
+                highlightYear(d.key);
                 tooltip.show(
-                    `<strong>${escapeHtml(d.data.label)}</strong>
-                    ${yearLabel}: <b>${segValue} students</b>${keys.length > 1 ? ` (${sharePct}%)` : ""}
-                    ${breakdown}
-                    <br><span class="muted">Total in category: ${d.data.total}</span>`,
+                    `<strong>${escapeHtml(outcomeLabel(d.data.label))} · ${yearLabel}</strong>
+                    ${t("stacked.segment", { n: segValue, share: yearShare, total: yearTotal })}
+                    <br><span class="muted">${t("stacked.rowTotal", { label: escapeHtml(outcomeLabel(d.data.label)), n: d.data.total })}</span>`,
                     event
                 );
             })
             .on("mousemove", event => tooltip.move(event))
-            .on("mouseleave", () => tooltip.hide());
+            .on("mouseleave", () => {
+                highlightYear(null);
+                tooltip.hide();
+            });
 
         g.selectAll("text.total-label")
             .data(data)
@@ -164,8 +185,8 @@ export function createStackedBarChart(container) {
             .attr("dy", "0.35em")
             .attr("font-size", "11.5px")
             .attr("font-weight", "700")
-            .attr("fill", "#475569")
-            .text(d => d.total);
+            .style("fill", "var(--text-soft)")
+            .text(d => formatNumber(d.total));
     }
 
     return {

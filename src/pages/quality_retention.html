@@ -1,25 +1,25 @@
 <section class="degree-management">
     <div class="search-header">
-        <h2>QUALITY & RETENTION</h2>
-        <h1>Institutional & Equity</h1>
+        <h2 data-i18n="nav.qr.eyebrow"></h2>
+        <h1 data-i18n="nav.qr.title"></h1>
         <div class="search-container">
             <div class="op-container">
-                <label for="filter-department">Department</label>
+                <label for="filter-department" data-i18n="common.department"></label>
                 <select id="filter-department"></select>
             </div>
 
             <div class="op-container">
-                <label for="filter-year">Academic Year</label>
+                <label for="filter-year" data-i18n="common.academicYear"></label>
                 <select id="filter-year"></select>
             </div>
 
             <div class="op-container">
-                <label for="filter-metric">Grouping Metric</label>
+                <label for="filter-metric" data-i18n="qr.metric"></label>
                 <select id="filter-metric"></select>
             </div>
 
             <button type="button" id="btn-reset" class="btn-reset">
-                <i class="fi fi-br-rotate-right"></i>Reset view
+                <i class="fi fi-br-rotate-right"></i><span data-i18n="common.reset"></span>
             </button>
         </div>
     </div>
@@ -27,16 +27,17 @@
         
         <article class="chart-container chart-card">
             <header class="card-header">
-                <h3>Student Equity & Outcome Flow</h3>
+                <h3 data-i18n="qr.sankeyTitle"></h3>
+                <span id="sankey-badge" class="badge"></span>
             </header>
             <div id="sankey-chart" class="chart-body"></div>
-            <footer id="sankey-footer" class="card-footer"/>
+            <footer id="sankey-footer" class="card-footer"></footer>
         </article>
         
         <article class="chart-container chart-card">
             <header class="card-header">
-                <h3 id="diverging-title">Equity Gap by Demographic</h3>
-                <span id="diverging-badge" class="badge">PASS vs FAIL</span>
+                <h3 id="diverging-title" data-i18n="qr.divergingTitle"></h3>
+                <span id="diverging-badge" class="badge" data-i18n="qr.passVsFail"></span>
             </header>
             <div id="diverging-chart" class="chart-body"></div>
             <footer id="diverging-footer" class="card-footer"></footer>
